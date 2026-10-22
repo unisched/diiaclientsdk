@@ -1,0 +1,256 @@
+# Diia — driver license and vehicle registration document metadata.
+# Source: diia_docs/diia_metadata.md («Водійське посвідчення», «Техпаспорт»)
+components:
+  schemas:
+    CodeNameValue:
+      type: object
+      description: >-
+        Field representation on document cards — code / name / value triplet. `code` is omitted
+        for fields that have no code on the physical document (e.g. document number, authority).
+      required: [name, value]
+      properties:
+        code:
+          type: string
+          description: Field code on the document (e.g. «4а.», «C.1.2»).
+          example: '1.'
+        name:
+          type: string
+          description: Field label (localized).
+          example: Прізвище
+        value:
+          type: string
+          description: Field value.
+          example: Бондаренко
+
+    DriverLicenseCategory:
+      type: object
+      required: [category, openingDate]
+      description: Driving category and its opening date.
+      properties:
+        category:
+          $ref: '#/components/schemas/CodeNameValue'
+        openingDate:
+          $ref: '#/components/schemas/CodeNameValue'
+
+    DriverLicenseData:
+      type: object
+      description: Driver license data block — the same structure is used for the `ua` and `eng` blocks.
+      required: [lastName, firstName, birth, issueDate, expiryDate, department, identifier, documentNumber, categories]
+      properties:
+        lastName:
+          $ref: '#/components/schemas/CodeNameValue'
+        firstName:
+          $ref: '#/components/schemas/CodeNameValue'
+        birth:
+          $ref: '#/components/schemas/CodeNameValue'
+        issueDate:
+          $ref: '#/components/schemas/CodeNameValue'
+        expiryDate:
+          $ref: '#/components/schemas/CodeNameValue'
+        department:
+          $ref: '#/components/schemas/CodeNameValue'
+        identifier:
+          $ref: '#/components/schemas/CodeNameValue'
+        documentNumber:
+          $ref: '#/components/schemas/CodeNameValue'
+        categories:
+          type: array
+          description: Driving categories.
+          items:
+            $ref: '#/components/schemas/DriverLicenseCategory'
+
+    DriverLicense:
+      type: object
+      description: Водійське посвідчення (scope `driver-license`).
+      required: [ua, eng, fileName]
+      properties:
+        ua:
+          allOf:
+            - $ref: '#/components/schemas/DriverLicenseData'
+            - description: Data in Ukrainian.
+        eng:
+          allOf:
+            - $ref: '#/components/schemas/DriverLicenseData'
+            - description: Data in English.
+        fileName:
+          type: string
+          description: Name of the signed and encrypted PDF file delivered to the partner endpoint.
+          example: driver-license-5df739ba-876f-4cee-b99f-dd60d3baa65c-24.02.2025, 11:40:17-1.pdf.p7s.p7e
+      example:
+        ua:
+          lastName: {code: '1.', name: Прізвище, value: Бондаренко}
+          firstName: {code: '2.', name: Ім’я та по батькові, value: Богдан Петрович}
+          birth: {code: '3.', name: Дата та місце народження, value: "10.10.1990\nКИЇВСЬКА ОБЛ., ЯГОТИНСЬКИЙ  Р-Н, М. ЯГОТИН"}
+          issueDate: {code: 4а., name: Дата видачі, value: '10.11.2008'}
+          expiryDate: {code: 4b., name: Дійсний до, value: '10.11.2038'}
+          department: {code: 4с., name: 'Орган, що видав', value: 'ТСЦ 3244'}
+          identifier: {code: 4d., name: УНЗР, value: 19901010-06276}
+          documentNumber: {code: '5.', name: Номер документа, value: ВХТ875787}
+          categories:
+            - category: {code: '9.', name: Категорія, value: C}
+              openingDate: {code: '10.', name: Дата відкриття категорії, value: '10.11.2008'}
+        eng:
+          lastName: {code: '1.', name: 'Surname:', value: Bondarenko}
+          firstName: {code: '2.', name: 'Given name(s):', value: Bogdan}
+          birth: {code: '3.', name: 'Date and place of birth:', value: "10.10.1990\nКИЇВСЬКА ОБЛ., ЯГОТИНСЬКИЙ  Р-Н, М. ЯГОТИН"}
+          issueDate: {code: 4а., name: 'Date of issue:', value: '10.11.2008'}
+          expiryDate: {code: 4b., name: 'Expiry date:', value: '10.11.2038'}
+          department: {code: 4с., name: 'Issuing authority:', value: 'ТСЦ 3244'}
+          identifier: {code: 4d., name: 'Record number:', value: 19901010-06276}
+          documentNumber: {code: '5.', name: 'Licence number:', value: '875787'}
+          categories:
+            - category: {code: '9.', name: 'Category:', value: C}
+              openingDate: {code: '10.', name: 'Category issuing date:', value: '10.11.2008'}
+        fileName: driver-license-5df739ba-876f-4cee-b99f-dd60d3baa65c-24.02.2025, 11:40:17-1.pdf.p7s.p7e
+
+    VehicleLicenseData:
+      type: object
+      description: Vehicle registration certificate data block — the same structure is used for the `ua` and `eng` blocks.
+      required:
+        - licensePlate
+        - firstRegistrationDate
+        - makeYear
+        - registrationDate
+        - documentNumber
+        - department
+        - lastName
+        - firstName
+        - address
+        - ownership
+        - brand
+        - model
+        - vin
+        - totalWeight
+        - ownWeight
+        - rankCategory
+        - capacity
+        - fuel
+        - color
+        - nseating
+        - nstandup
+        - kindBody
+      properties:
+        licensePlate:
+          $ref: '#/components/schemas/CodeNameValue'
+        firstRegistrationDate:
+          $ref: '#/components/schemas/CodeNameValue'
+        makeYear:
+          $ref: '#/components/schemas/CodeNameValue'
+        registrationDate:
+          $ref: '#/components/schemas/CodeNameValue'
+        documentNumber:
+          $ref: '#/components/schemas/CodeNameValue'
+        department:
+          $ref: '#/components/schemas/CodeNameValue'
+        lastName:
+          $ref: '#/components/schemas/CodeNameValue'
+        firstName:
+          $ref: '#/components/schemas/CodeNameValue'
+        address:
+          $ref: '#/components/schemas/CodeNameValue'
+        ownership:
+          $ref: '#/components/schemas/CodeNameValue'
+        brand:
+          $ref: '#/components/schemas/CodeNameValue'
+        model:
+          $ref: '#/components/schemas/CodeNameValue'
+        vin:
+          $ref: '#/components/schemas/CodeNameValue'
+        totalWeight:
+          $ref: '#/components/schemas/CodeNameValue'
+        ownWeight:
+          $ref: '#/components/schemas/CodeNameValue'
+        rankCategory:
+          $ref: '#/components/schemas/CodeNameValue'
+        capacity:
+          $ref: '#/components/schemas/CodeNameValue'
+        fuel:
+          $ref: '#/components/schemas/CodeNameValue'
+        color:
+          $ref: '#/components/schemas/CodeNameValue'
+        nseating:
+          $ref: '#/components/schemas/CodeNameValue'
+        nstandup:
+          $ref: '#/components/schemas/CodeNameValue'
+        kindBody:
+          type: object
+          description: Special marks (vehicle body kind).
+          required: [name, value]
+          properties:
+            name:
+              type: string
+              example: Особливі відмітки
+            value:
+              type: string
+              example: ЛЕГКОВИЙ СЕДАН
+        powerKWT:
+          allOf:
+            - $ref: '#/components/schemas/CodeNameValue'
+            - description: Electric power (code P.2); provided when available.
+
+    VehicleLicense:
+      type: object
+      description: Техпаспорт — свідоцтво про реєстрацію ТЗ (scope `vehicle-license`).
+      required: [ua, eng, fileName]
+      properties:
+        ua:
+          allOf:
+            - $ref: '#/components/schemas/VehicleLicenseData'
+            - description: Data in Ukrainian.
+        eng:
+          allOf:
+            - $ref: '#/components/schemas/VehicleLicenseData'
+            - description: Data in English.
+        fileName:
+          type: string
+          description: Name of the signed and encrypted PDF file delivered to the partner endpoint.
+          example: vehicle-license-83dc371b-f1c2-4f1a-8606-d8f7940534af-18.02.2025, 14:14:24-1.pdf.p7s.p7e
+      example:
+        ua:
+          licensePlate: {code: A, name: Реєстраційний номер, value: АІ0001KІ}
+          firstRegistrationDate: {code: B.1, name: Дата першої реєстрації в Україні, value: '28.08.2021'}
+          makeYear: {code: B.2, name: Рік випуску, value: '2003'}
+          registrationDate: {code: I, name: Дата реєстрації, value: '11.08.2022'}
+          documentNumber: {name: Номер документа, value: СТТ 535353}
+          department: {name: 'Орган, що видав', value: 'ТСЦ 3244'}
+          lastName: {code: C.1.1, name: Прізвище або організація, value: Петренко}
+          firstName: {code: C.1.2, name: Ім’я та по батькові, value: Олена Віталіївна}
+          address: {code: C.1.3, name: Адреса, value: 'КИЇВСЬКА ОБЛ., ЯГОТИНСЬКИЙ  Р-Н, М. ЯГОТИН, ВУЛ. КИЇВСЬКА, 42'}
+          ownership: {code: C.4, name: Власність, value: Власник}
+          brand: {code: D.1, name: Марка, value: HONDA}
+          model: {code: D.3, name: Комерційний опис, value: ACCORD}
+          vin: {code: E, name: Ідентифікаційний номер транспортного засобу, value: JHMCL96803C204040}
+          totalWeight: {code: F.1, name: 'Повна маса, кг', value: '1920'}
+          ownWeight: {code: G, name: 'Маса без навантаження, кг', value: '1489'}
+          rankCategory: {code: J, name: Категорія, value: 'АВТОМОБІЛІ, ДОЗВОЛЕНА МАКСИМАЛЬНА МАСА ЯКИХ НЕ ПЕРЕВИЩУЄ 3500  КІЛОГРАМІВ (7700 ФУНТІВ), А КІЛЬКІСТЬ СИДЯЧИХ МІСЦЬ, КРІМ СИДІННЯ ВОДІЯ, - ВОСЬМИ'}
+          capacity: {code: P.1, name: 'Об’єм двигуна, cм³', value: '2354'}
+          fuel: {code: P.3, name: Тип палива або джерела енергії, value: Бензин}
+          color: {code: R, name: Колір, value: Сірий}
+          nseating: {code: S.1, name: Кількість сидячих місць, value: '5'}
+          nstandup: {code: S.2, name: Кількість стоячих місць, value: Не вказано}
+          kindBody: {name: Особливі відмітки, value: ЛЕГКОВИЙ СЕДАН}
+        eng:
+          licensePlate: {code: A, name: 'Registration number:', value: АІ0001KІ}
+          firstRegistrationDate: {code: B.1, name: 'Date of first registration in Ukraine:', value: '28.08.2021'}
+          makeYear: {code: B.2, name: 'Year of manufacture:', value: '2003'}
+          registrationDate: {code: I, name: 'Date of registration:', value: '11.08.2022'}
+          documentNumber: {name: 'Record number:', value: СТТ 535353}
+          department: {name: 'Authority:', value: 'ТСЦ 3244'}
+          lastName: {code: C.1.1, name: 'Surname or company:', value: Petrenko}
+          firstName: {code: C.1.2, name: 'Given name(s):', value: Olena}
+          address: {code: C.1.3, name: 'Address:', value: 'КИЇВСЬКА ОБЛ., ЯГОТИНСЬКИЙ  Р-Н, М. ЯГОТИН, ВУЛ. КИЇВСЬКА, 42'}
+          ownership: {code: C.4, name: 'Ownership:', value: Власник}
+          brand: {code: D.1, name: 'Make:', value: HONDA}
+          model: {code: D.3, name: 'Commercial description:', value: ACCORD}
+          vin: {code: E, name: 'VIN:', value: JHMCL96803C204040}
+          totalWeight: {code: F.1, name: 'Maximum mass, kg:', value: '1920'}
+          ownWeight: {code: G, name: 'Mass of the vehicle in service, kg:', value: '1489'}
+          rankCategory: {code: J, name: 'Vehicle category:', value: 'АВТОМОБІЛІ, ДОЗВОЛЕНА МАКСИМАЛЬНА МАСА ЯКИХ НЕ ПЕРЕВИЩУЄ 3500  КІЛОГРАМІВ (7700 ФУНТІВ), А КІЛЬКІСТЬ СИДЯЧИХ МІСЦЬ, КРІМ СИДІННЯ ВОДІЯ, - ВОСЬМИ'}
+          capacity: {code: P.1, name: 'Capacity, cm³:', value: '2354'}
+          fuel: {code: P.3, name: 'Type of fuel or power source:', value: Бензин}
+          color: {code: R, name: 'Color of the vehicle:', value: Сірий}
+          nseating: {code: S.1, name: 'Number of seats including the driver’s seat:', value: '5'}
+          nstandup: {code: S.2, name: 'Number of standing places:', value: Not Provided}
+          kindBody: {name: 'Special marks:', value: ЛЕГКОВИЙ СЕДАН}
+          powerKWT: {code: P.2, name: 'Maximum net power (in kW):', value: '150'}
+        fileName: vehicle-license-83dc371b-f1c2-4f1a-8606-d8f7940534af-18.02.2025, 14:14:24-1.pdf.p7s.p7e

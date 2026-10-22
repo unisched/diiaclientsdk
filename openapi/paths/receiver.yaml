@@ -1,0 +1,165 @@
+# Path items: partner receiver endpoints (called by the Diia mobile app).
+# Sources: diia_docs/diia_sharing.md §2.8–2.9, diia_docs/diia_sign.md §3.7, §4.2.4–4.2.5
+DocumentsReceiver:
+  post:
+    tags: [PartnerCallbacks]
+    summary: Receive the shared document package (sharing callback)
+    description: |-
+      Called by the Diia mobile app after the user consents to share documents — both for the
+      barcode (offline) and the deeplink (online) scenarios.
+
+      Multipart body:
+
+      * `encodeData` — base64 of the encrypted signed container; after decryption and signature
+        verification (IIT library, see diia_sharing.md §2.11) it yields the
+        `DocumentSharingMetadata` JSON (see `x-decrypted-payloads`);
+      * one part per shared document, named by its document type (`foreign-passport`; use
+        `foreign-passport[]` when the user shares two documents of the same type) — base64 of
+        the PDF;
+      * `signature-...` parts — base64 of the document hash signed with the ДП «Дія» QES and,
+        when `useDiiaId` was requested, with the user's Diia.Sign.
+
+      Verify that the `X-Document-Request-Trace-Id` value exists in your database — the request
+      must have been initiated by you. Respond within 30 seconds: `200 {"success": true}` on
+      success, otherwise `404 {"success": false}` so the app shows the failure screen.
+    operationId: receiveDocuments
+    security:
+      - {}
+      - bearerAuth: []
+    parameters:
+      - $ref: '../components/parameters.yaml#/components/parameters/XDocumentRequestTraceId'
+    requestBody:
+      required: true
+      content:
+        multipart/form-data:
+          schema:
+            $ref: '../components/schemas/receiver.yaml#/components/schemas/DocumentsReceiverForm'
+    responses:
+      '200':
+        description: >-
+          Package accepted. The Diia app shows the success screen and the request status
+          becomes `done`.
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/components/schemas/SuccessResponse'
+            example:
+              success: true
+      '404':
+        description: >-
+          Package rejected. The Diia app shows the failure screen and the request status becomes
+          `refuse`.
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/components/schemas/ErrorResponse'
+            example:
+              success: false
+
+SignReceiver:
+  post:
+    tags: [PartnerCallbacks]
+    summary: Receive signed file hashes (Diia.Sign — hashedFilesSigning)
+    description: |-
+      Called by the Diia mobile app after the user signs the file hashes requested via
+      `createOfferRequestDynamic` (offer scope `diiaId: [hashedFilesSigning]`).
+
+      `encodeData` is base64 of the encrypted signed container; after decryption it contains
+      the `SignedItemsEnvelope` JSON with one entry per signed file
+      (`{"signedItems": [{"name": "...", "signature": "base64 CAdES"}]}`).
+
+      Content type: `multipart/mixed`, or `multipart/form-data` (may be used in the production
+      environment).
+
+      Respond within 30 seconds: `200 {"success": true}` on success, otherwise
+      `404 {"success": false}`.
+    operationId: receiveSignature
+    security:
+      - {}
+      - bearerAuth: []
+    parameters:
+      - name: X-Diia-Id-Action
+        in: header
+        required: true
+        description: Marks the callback as a file-hash signing result.
+        schema:
+          type: string
+          enum: [hashedFilesSigning]
+      - $ref: '../components/parameters.yaml#/components/parameters/XDocumentRequestTraceId'
+    requestBody:
+      required: true
+      content:
+        multipart/form-data:
+          schema:
+            $ref: '../components/schemas/receiver.yaml#/components/schemas/SignatureReceiverForm'
+        multipart/mixed:
+          schema:
+            $ref: '../components/schemas/receiver.yaml#/components/schemas/SignatureReceiverForm'
+    responses:
+      '200':
+        description: Signed items accepted; the request status becomes `done`.
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/components/schemas/SuccessResponse'
+            example:
+              success: true
+      '404':
+        description: Package rejected; the request status becomes `refuse`.
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/components/schemas/ErrorResponse'
+            example:
+              success: false
+
+AuthReceiver:
+  post:
+    tags: [PartnerCallbacks]
+    summary: Receive the signed identifier (Diia.Sign — auth)
+    description: |-
+      Called by the Diia mobile app after the user signs the identifier requested via
+      `createOfferRequestDynamic` (offer scope `diiaId: [auth]`).
+
+      `encodeData` is base64 of the encrypted signed container; after decryption it contains the
+      `AuthResultEnvelope` JSON: `{"requestId": "...", "signature": "base64"}`. Verify the
+      signature, decide whether to authorize the user, and respond with
+      `200 {"success": true}` on success (otherwise `404 {"success": false}`) within 30 seconds.
+    operationId: receiveAuth
+    security:
+      - {}
+      - bearerAuth: []
+    parameters:
+      - name: X-Diia-Id-Action
+        in: header
+        required: true
+        description: Marks the callback as an authorization result.
+        schema:
+          type: string
+          enum: [auth]
+      - $ref: '../components/parameters.yaml#/components/parameters/XDocumentRequestTraceId'
+    requestBody:
+      required: true
+      content:
+        multipart/form-data:
+          schema:
+            $ref: '../components/schemas/receiver.yaml#/components/schemas/AuthReceiverForm'
+    responses:
+      '200':
+        description: User signature accepted (user authorized); the request status becomes `done`.
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/components/schemas/SuccessResponse'
+            example:
+              success: true
+      '404':
+        description: >-
+          Authorization rejected (or the signature did not match); the request status becomes
+          `refuse`.
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/components/schemas/ErrorResponse'
+            example:
+              success: false

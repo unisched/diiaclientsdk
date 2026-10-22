@@ -1,0 +1,109 @@
+# Diia — payload schemas of the partner receiver endpoints (callbacks from the Diia app).
+# Sources: diia_docs/diia_sharing.md §2.9, diia_docs/diia_sign.md §3.7, §4.2.5
+components:
+  schemas:
+    EncodeData:
+      type: string
+      description: >-
+        Base64-encoded encrypted signed container. Decrypt it with your private key and verify
+        the signature with the IIT library (EUSignCP); the decrypted content is JSON — see the
+        `x-decrypted-payloads` mapping in the root of this specification.
+      example: eyJzaWduZWRJdGVtcyI6W3sibmFtZSI6ItCU0LDQvdGWINC00LvRjyDRltC00LXQvdGC0LjRhNGW0LrQsNGG0ZbRlyIsInNpZ25hdHVyZSI6Ik1JSXgxZ1lKS29aSWh2Y05BUWNDb0lJeHh6Q0NNY01DQVFFeERqQU1CZ29xaGlRQ0FRRUJBUUlCTUFzR0NTcUdTSWIzRFFFSEFhQ0NCbGN3Z2daVE1JSUYrNkFEQWdFQ0FoUSsxUWd4WU52Rm1VRmZ2M2dZQVFTUVNBREFOQmdzcWhpUUNBUUVCQVFNQkFUQ0I0VEVXTUJRR0ExVUVDZ3dOMEpUUW55QWswSlRRaHRDdklqRnpNSEVHQTFVRUF3eHFJdENVMFpiUmp5SXVJTkNhMExMUXNOQzcwWmJSaE5HVzBMclF2dEN5MExEUXdnY3hYV3lBUUFBQUFFQUFBQ0JBQUFBTUJBR0N5cUdKQUlCQVFFQkF3RUJNSUg2TVQ4d1BRWURWUVFLRERiUW5OR1cwTDNSbHRHQjBZTFF0ZEdBMFlIUmd0Q3kwTDRnMFk3UmdkR0MwTGpR">
+
+    DocumentsReceiverForm:
+      type: object
+      description: |-
+        Multipart body of the sharing callback. Besides `encodeData`, it carries one part per
+        shared document and one part per signed document hash; part names are dynamic and are
+        derived from the document types the user shared.
+      required: [encodeData]
+      properties:
+        encodeData:
+          $ref: '#/components/schemas/EncodeData'
+      additionalProperties:
+        type: string
+        description: >-
+          * Document parts are named by the document type (`foreign-passport`); when the user
+            shares two documents of the same type the name gets a `[]` suffix
+            (`foreign-passport[]`). The value is the base64 PDF (`*.pdf.p7s.p7e`).
+          * Signed hash parts are named `signature-<sanitized file name>` and contain the base64
+            hash signed with the ДП «Дія» QES (and with the user's Diia.Sign when `useDiiaId`
+            was requested).
+      example:
+        encodeData: eyJzaWduZWRJdGVtcyI6W3sibmFtZSI6ItCU0LDQvdGWINC00LvRjyDRltC00LXQvdGC0LjRhNGW0LrQsNGG0ZbRlyIsInNpZ25hdHVyZSI6Ik1JSXgxZ1lKS29aSWh2Y05BUWNDb0lJeHh6Q0NNY01DQVFFeERqQU1CZ29xaGlRQ0FRRUJBUUlCTUFzR0NTcUdTSWIzRFFFSEFhQ0NCbGN3Z2daVE1JSUYrNkFEQWdFQ0FoUSsxUWd4WU52Rm1VRmZ2M2dZQVFTUVNBREFOQmdzcWhpUUNBUUVCQVFNQkFUQ0I0VEVXTUJRR0ExVUVDZ3dOMEpUUW55QWswSlRRaHRDdklqRnpNSEVHQTFVRUF3eHFJdENVMFpiUmp5SXVJTkNhMExMUXNOQzcwWmJSaE5HVzBMclF2dEN5MExEUXdnY3hYV3lBUUFBQUFFQUFBQ0JBQUFBTUJBR0N5cUdKQUlCQVFFQkF3RUJNSUg2TVQ4d1BRWURWUVFLRERiUW5OR1cwTDNSbHRHQjBZTFF0ZEdBMFlIUmd0Q3kwTDRnMFk3UmdkR0MwTGpR">
+        foreign-passport: foreign-passport-5924084231967-2020-06-22T09:54:32.643.pdf.p7s.p7e
+        'signature-foreign-passport-990f4714-f9c4-40fb-9eab-de5489bfe339-23_06_2025,_17:13:08-1_pdf': foreign-passport-990f4714-f9c4-40fb-9eab-de5489bfe339-23.06.2025, 17:13:08-1.pdf.p7s
+
+    SignatureReceiverForm:
+      type: object
+      description: >-
+        Multipart body of the Diia.Sign signing callback. `encodeData` decodes to
+        `SignedItemsEnvelope`.
+      required: [encodeData]
+      additionalProperties: false
+      properties:
+        encodeData:
+          $ref: '#/components/schemas/EncodeData'
+      example:
+        encodeData: eyJzaWduZWRJdGVtcyI6W3sibmFtZSI6ItCU0LDQvdGWINC00LvRjyDRltC00LXQvdGC0LjRhNGW0LrQsNGG0ZbRlyIsInNpZ25hdHVyZSI6Ik1JSXgxZ1lKS29aSWh2Y05BUWNDb0lJeHh6Q0NNY01DQVFFeERqQU1CZ29xaGlRQ0FRRUJBUUlCTUFzR0NTcUdTSWIzRFFFSEFhQ0NCbGN3Z2daVE1JSUYrNkFEQWdFQ0FoUSsxUWd4WU52Rm1VRmZ2M2dZQVFTUVNBREFOQmdzcWhpUUNBUUVCQVFNQkFUQ0I0VEVXTUJRR0ExVUVDZ3dOMEpUUW55QWswSlRRaHRDdklqRnpNSEVHQTFVRUF3eHFJdENVMFpiUmp5SXVJTkNhMExMUXNOQzcwWmJSaE5HVzBMclF2dEN5MExEUXdnY3hYV3lBUUFBQUFFQUFBQ0JBQUFBTUJBR0N5cUdKQUlCQVFFQkF3RUJNSUg2TVQ4d1BRWURWUVFLRERiUW5OR1cwTDNSbHRHQjBZTFF0ZEdBMFlIUmd0Q3kwTDRnMFk3UmdkR0MwTGpR">
+
+    AuthReceiverForm:
+      type: object
+      description: >-
+        Multipart body of the Diia.Sign authorization callback. `encodeData` decodes to
+        `AuthResultEnvelope`.
+      required: [encodeData]
+      additionalProperties: false
+      properties:
+        encodeData:
+          $ref: '#/components/schemas/EncodeData'
+      example:
+        encodeData: eyJzaWduZWRJdGVtcyI6W3sibmFtZSI6ItCU0LDQvdGWINC00LvRjyDRltC00LXQvdGC0LjRhNGW0LrQsNGG0ZbRlyIsInNpZ25hdHVyZSI6Ik1JSXgxZ1lKS29aSWh2Y05BUWNDb0lJeHh6Q0NNY01DQVFFeERqQU1CZ29xaGlRQ0FRRUJBUUlCTUFzR0NTcUdTSWIzRFFFSEFhQ0NCbGN3Z2daVE1JSUYrNkFEQWdFQ0FoUSsxUWd4WU52Rm1VRmZ2M2dZQVFTUVNBREFOQmdzcWhpUUNBUUVCQVFNQkFUQ0I0VEVXTUJRR0ExVUVDZ3dOMEpUUW55QWswSlRRaHRDdklqRnpNSEVHQTFVRUF3eHFJdENVMFpiUmp5SXVJTkNhMExMUXNOQzcwWmJSaE5HVzBMclF2dEN5MExEUXdnY3hYV3lBUUFBQUFFQUFBQ0JBQUFBTUJBR0N5cUdKQUlCQVFFQkF3RUJNSUg2TVQ4d1BRWURWUVFLRERiUW5OR1cwTDNSbHRHQjBZTFF0ZEdBMFlIUmd0Q3kwTDRnMFk3UmdkR0MwTGpR">
+
+    SignedItem:
+      type: object
+      description: Single signed item (one per signed file).
+      required: [name, signature]
+      properties:
+        name:
+          type: string
+          description: File name the signature belongs to.
+          example: filename_1.pdf
+        signature:
+          type: string
+          description: Base64-encoded CAdES signature of the file hash.
+          example: MIIx1gYJKoZIhvcNAQcCoIIxxzCCMcMCAQExDjAMBgoqhiQCAQEBAQIBMA...
+
+    SignedItemsEnvelope:
+      type: object
+      description: Decrypted content of `encodeData` in the Diia.Sign signing callback.
+      required: [signedItems]
+      properties:
+        signedItems:
+          type: array
+          description: One entry per file passed to `data.hashedFilesSigning.hashedFiles`.
+          items:
+            $ref: '#/components/schemas/SignedItem'
+      example:
+        signedItems:
+          - name: filename_1.pdf
+            signature: MIIx1gYJKoZIhvcNAQcCoIIxxzCCMcMCAQExDjAMBgoqhiQCAQEBAQIBMA...
+
+    AuthResultEnvelope:
+      type: object
+      description: >-
+        Decrypted content of `encodeData` in the Diia.Sign authorization callback. Use it to
+        verify the user's signature and decide whether to authorize the user.
+      required: [requestId, signature]
+      properties:
+        requestId:
+          type: string
+          description: The `requestId` that the partner passed to `createOfferRequestDynamic`.
+          example: a1234567-0123-1234-1234-123412341234
+        signature:
+          type: string
+          description: Base64-encoded signature of the user's identifier.
+          example: MIIx1gYJKoZIhvcNAQcCoIIxxzCCMcMCAQExDjAMBgoqhiQCAQEBAQIBMA...
+      example:
+        requestId: a1234567-0123-1234-1234-123412341234
+        signature: MIIx1gYJKoZIhvcNAQcCoIIxxzCCMcMCAQExDjAMBgoqhiQCAQEBAQIBMA...

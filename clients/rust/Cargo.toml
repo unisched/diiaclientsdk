@@ -1,0 +1,21 @@
+[package]
+name = "diia_client"
+version = "0.1.0"
+authors = ["OpenAPI Generator team and contributors"]
+description = "OpenAPI specification of the Diia (ДП «Дія») REST API covering:  * **Sharing** — branches, offers, offline (barcode) and online (deeplink) document sharing,   request statuses; * **Diia.Sign** — signing of file hashes (`hashedFilesSigning`) and authorization (`auth`),   initiated via deeplinks.  The encrypted package that the Diia mobile app delivers to the partner is described in a separate specification — `diia-partner-receiver.yaml` (including the decrypted metadata structure of every document type).  Environments (all individual acquirer/branch data differs between them):  * `https://api2.diia.gov.ua` — production (real Diia app and documents); * `https://api2s.diia.gov.ua` — sandbox (test Diia app with the mock user «Дія Надія»).  Authorization is not OAuth 2.0: the partner exchanges its static `acquirer_token` for a session token (`getSessionToken`) and passes it as a bearer token in every other call.  Source documents: `diia_docs/diia_sharing.md` (updated 05.08.26) and `diia_docs/diia_sign.md` (updated 03.09.26)."
+# Override this license by providing a License Object in the OpenAPI.
+license = "Unlicense"
+edition = "2021"
+
+[dependencies]
+serde = { version = "^1.0", features = ["derive"] }
+serde_json = "^1.0"
+serde_repr = "^0.1"
+url = "^2.5"
+uuid = { version = "^1.8", features = ["serde", "v4"] }
+reqwest = { version = "^0.13", default-features = false, features = ["json", "multipart", "query", "form"] }
+
+[features]
+default = ["native-tls"]
+native-tls = ["reqwest/native-tls"]
+rustls = ["reqwest/rustls"]

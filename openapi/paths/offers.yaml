@@ -1,0 +1,75 @@
+# Path items: offers (пропозиції) API.
+# Sources: diia_docs/diia_sharing.md §2.5, diia_docs/diia_sign.md §3.4
+OfferCreate:
+  parameters:
+    - $ref: '../components/parameters.yaml#/components/parameters/BranchId'
+  post:
+    tags: [Offers]
+    summary: Create an offer on a branch
+    description: |-
+      Creates an offer (пропозиція) on the branch. Offers, like branches, must be reused —
+      create them once and pass `offer_id` with each request. The offer scopes must be a subset
+      of the scopes granted to the branch.
+
+      If `returnLink` is provided, the user is redirected to it after successful
+      sharing/signing (see also the offer `returnLink` notes in the `OfferCreateRequest`
+      schema).
+    operationId: createOffer
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/offer.yaml#/components/schemas/OfferCreateRequest'
+    responses:
+      '200':
+        description: Offer created.
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/components/schemas/IdResponse'
+            example:
+              _id: 27924eb1d1f0f5f0c8c4c4ecb42f44bec9
+      '401':
+        $ref: '../components/responses.yaml#/components/responses/NotAuthorized'
+      '404':
+        $ref: '../components/responses.yaml#/components/responses/BranchNotFound'
+
+OfferList:
+  parameters:
+    - $ref: '../components/parameters.yaml#/components/parameters/BranchId'
+  get:
+    tags: [Offers]
+    summary: Get the list of offers on a branch
+    description: Do not request more than 100 offers per call — use `skip`/`limit` parameters.
+    operationId: getOffers
+    parameters:
+      - $ref: '../components/parameters.yaml#/components/parameters/SkipQuery'
+      - $ref: '../components/parameters.yaml#/components/parameters/LimitQuery'
+    responses:
+      '200':
+        description: List of offers created on the branch.
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/offer.yaml#/components/schemas/OfferList'
+      '401':
+        $ref: '../components/responses.yaml#/components/responses/NotAuthorized'
+      '404':
+        $ref: '../components/responses.yaml#/components/responses/BranchNotFound'
+
+OfferDelete:
+  parameters:
+    - $ref: '../components/parameters.yaml#/components/parameters/BranchId'
+    - $ref: '../components/parameters.yaml#/components/parameters/OfferId'
+  delete:
+    tags: [Offers]
+    summary: Delete an offer on a branch
+    operationId: deleteOffer
+    responses:
+      '204':
+        description: Offer deleted.
+      '401':
+        $ref: '../components/responses.yaml#/components/responses/NotAuthorized'
+      '404':
+        $ref: '../components/responses.yaml#/components/responses/BranchNotFound'

@@ -1,0 +1,206 @@
+# Diia REST API — reusable error responses with examples from the integration guides.
+# Sources: diia_docs/diia_sharing.md §3, diia_docs/diia_sign.md §4.4
+components:
+  responses:
+    NotAuthorized:
+      description: >-
+        Session token is missing, invalid or expired (session tokens live 2 hours from the
+        moment they are issued). Alternatively the `Authorization: Bearer {session_token}`
+        header was not provided correctly.
+      content:
+        application/json:
+          schema:
+            $ref: 'schemas/common.yaml#/components/schemas/ApiError'
+          example: {name: Error, message: Not authorized, code: 401, data: {}}
+
+    AcquirerNotFound:
+      description: >-
+        Unknown acquirer token (production environment). Contact the ДП «Дія» integration chat
+        and report this error.
+      content:
+        application/json:
+          schema:
+            $ref: 'schemas/common.yaml#/components/schemas/ApiError'
+          example: {name: Error, message: 'Acquirer not found by the provided token <acquirer_token>', code: 401, data: {}}
+
+    BranchNotFound:
+      description: Branch identifier does not exist or the branch has been deleted.
+      content:
+        application/json:
+          schema:
+            $ref: 'schemas/common.yaml#/components/schemas/ApiError'
+          example: {name: Error, message: 'The requested model Branch d441d209...f36 could not be found.', code: 404, data: null}
+
+    DocumentRequestBadRequest:
+      description: >-
+        The sharing request was rejected. Possible causes: the barcode does not exist; the
+        barcode has already been used (barcodes are single-use); the barcode lifetime (3
+        minutes) expired; the branch has no permission to share the document type of the
+        barcode; the push notification could not be delivered; the acquirer encryption
+        certificate has expired.
+      content:
+        application/json:
+          schema:
+            $ref: 'schemas/common.yaml#/components/schemas/ApiError'
+          examples:
+            documentTypeForbidden:
+              summary: Branch has no permissions to share this document type
+              value: {name: Error, message: 'You have not access to this document type: foreign-passport', code: 400, data: {}}
+            barcodeNotFound:
+              summary: The provided barcode does not exist
+              value: {name: Error, message: 'Could not find the provided barcode', code: 400, data: {barcode: '1111111111111'}}
+            barcodeNotFoundViaQrCode:
+              summary: The provided barcode does not exist (QR-code variant of the payload)
+              value: {name: Error, message: 'Could not find the provided barcode', code: 400, data: {'qr-code': 'https://…'}}
+            barcodeAlreadyUsedTest:
+              summary: Barcode already used (test environment)
+              value: {name: Error, message: Document request by this barcode is already created, code: 400, data: {}}
+            barcodeAlreadyUsedProduction:
+              summary: Barcode already used (production environment)
+              value: {name: Error, message: 'This code has been used already!', code: 400, data: {}}
+            barcodeExpired:
+              summary: Barcode lifetime expired (3 minutes)
+              value: {name: Error, message: 'Code has been expired!', code: 400, data: {now: '2021-04-21T12:42:27.257Z', expirationDate: '2021-04-21T12:41:38.940Z'}}
+            pushNotificationFailed:
+              summary: Could not send push notification to the user's device
+              value: {name: Error, message: 'Could not send push notification to the user', code: 400, data: null}
+            certificateExpired:
+              summary: Acquirer public encryption certificate expired
+              value: {name: Error, message: 'Acquirer certificate has expired!', code: 400, data: {acquirerId: 63498099e7b39ddf8d0388d5}}
+
+    OfferRequestBadRequest:
+      description: >-
+        The request was rejected: the `requestId` has already been used (`requestId` must be
+        unique), or the public encryption certificate installed on the acquirer account has
+        expired and must be replaced.
+      content:
+        application/json:
+          schema:
+            $ref: 'schemas/common.yaml#/components/schemas/ApiError'
+          examples:
+            duplicateRequestId:
+              summary: The requestId has already been sent before
+              value:
+                {
+                  name: Error,
+                  message: 'Entity with a provided data already exists: [acquirerId: XXX], [requestId: f123456e-1234-1234-1234-1b123456ab12], [prevOfferRequest: null]',
+                  code: 400,
+                  data: {}
+                }
+            certificateExpired:
+              summary: Acquirer public encryption certificate expired
+              value: {name: Error, message: 'Acquirer certificate has expired!', code: 400, data: {acquirerId: 63498099e7b39ddf8d0388d5}}
+
+    OfferRequestNotFound:
+      description: >-
+        One of the following: the branch id in the path does not exist; the offer id in the body
+        does not exist; the offer does not belong to the branch from the path; the `returnLink`
+        field was sent as an empty string.
+      content:
+        application/json:
+          schema:
+            $ref: 'schemas/common.yaml#/components/schemas/ApiError'
+          examples:
+            branchOfferNotFound:
+              summary: Branch or offer not found (or the offer does not belong to the branch)
+              value: {name: Error, message: 'The requested model BranchOffer ed292c0...fa1 could not be found.', code: 404, data: null}
+            returnLinkRequired:
+              summary: returnLink was provided as an empty string
+              value: {name: Error, message: Return link should be provided, code: 404, data: {}}
+
+    OfferRequestValidationError:
+      description: Parameter validation error — `requestId` is missing or its length is out of the 10–255 range.
+      content:
+        application/json:
+          schema:
+            $ref: 'schemas/common.yaml#/components/schemas/ApiError'
+          examples:
+            required:
+              description: The `requestId` field is missing.
+              value:
+                {
+                  name: Error,
+                  message: Parameter validation error,
+                  code: 422,
+                  data: {errors: [{type: required, message: "The 'params.requestId' field is required.", field: params.requestId}]}
+                }
+            stringMin:
+              description: The `requestId` is shorter than 10 characters.
+              value:
+                {
+                  name: Error,
+                  message: Parameter validation error,
+                  code: 422,
+                  data:
+                    {
+                      errors:
+                        [
+                          {
+                            type: stringMin,
+                            message: "The 'params.requestId' field length must be greater than or equal to 10 characters long.",
+                            field: params.requestId,
+                            expected: 10,
+                            actual: 3
+                          }
+                        ]
+                    }
+                }
+            stringMax:
+              description: The `requestId` is longer than 255 characters.
+              value:
+                {
+                  name: Error,
+                  message: Parameter validation error,
+                  code: 422,
+                  data:
+                    {
+                      errors:
+                        [
+                          {
+                            type: stringMax,
+                            message: "The 'params.requestId' field length must be less than or equal to 255 characters long.",
+                            field: params.requestId,
+                            expected: 255,
+                            actual: 512
+                          }
+                        ]
+                    }
+                }
+
+    BranchValidationError:
+      description: >-
+        Parameters validation error on branch creation/update. Make sure the body follows the
+        documented structure (all fields are required, field names are case-sensitive).
+      content:
+        application/json:
+          schema:
+            $ref: 'schemas/common.yaml#/components/schemas/ApiError'
+          example:
+            {
+              name: ValidationError,
+              message: 'Parameters validation error!',
+              code: 422,
+              type: VALIDATION_ERROR,
+              data: [{type: required, message: "The 'deliveryTypes' field is required.", field: deliveryTypes}]
+            }
+
+    DocumentRequestStatusNotFound:
+      description: >-
+        Either the status was requested for a barcode/otp that never had a request created, or
+        the `requestId` was reused (`requestId` is unique).
+      content:
+        application/json:
+          schema:
+            $ref: 'schemas/common.yaml#/components/schemas/ApiError'
+          example: {name: Error, message: 'The requested model DocumentRequest [object Object] could not be found.', code: 404, data: {}}
+
+    SignScopeConflict:
+      description: >-
+        Both Diia.Sign scenarios («hashedFilesSigning» and «auth») are integrated on the same
+        branch — this is incompatible. Create at least one separate branch per Diia.Sign
+        scenario.
+      content:
+        application/json:
+          schema:
+            $ref: 'schemas/common.yaml#/components/schemas/ApiError'
+          example: {name: Error, message: Only one scope value could be provided for the diiaId scope, code: 403, data: {}}

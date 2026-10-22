@@ -1,0 +1,19 @@
+# This file instructs Redocly's linter to ignore the rules contained for specific parts of your API.
+# See https://redocly.com/docs/cli/ for more information.
+openapi/diia-api.yaml:
+  info-license:
+    - '#/info'
+openapi/diia-partner-receiver.yaml:
+  info-license:
+    - '#/info'
+openapi/components/schemas/documents/taxpayer.yaml:
+  no-invalid-schema-examples:
+    - '#/components/schemas/ChildTaxpayerCard/schema'
+openapi/components/schemas/documents/act-records.yaml:
+  no-invalid-schema-examples:
+    - '#/components/schemas/NameChangeActRecord/schema'
+    - '#/components/schemas/MarriageActRecord/schema'
+    - '#/components/schemas/DivorceActRecord/schema'
+openapi/components/schemas/metadata.yaml:
+  no-invalid-schema-examples:
+    - '#/components/schemas/DocumentSharingMetadata/schema'

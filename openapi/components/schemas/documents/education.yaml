@@ -1,0 +1,214 @@
+# Diia — education document metadata.
+# Source: diia_docs/diia_metadata.md («Освітні документи»)
+components:
+  schemas:
+    EducationDocument:
+      type: object
+      description: |-
+        Документ про освіту (scope `education-document`). Supported subtypes include
+        `diplomaOfBachelor`, `diplomaOfJuniorSpecialist`,
+        `attestationOfCompleteGeneralSecondaryEducation`,
+        `certificateOfBasicGeneralSecondaryEducation` (the enum is not exhaustive — the
+        `subtype` field identifies the exact document kind and the set of filled fields varies).
+      required:
+        - id
+        - docStatus
+        - docNumber
+        - number
+        - series
+        - subtype
+        - subtypeName
+        - subtypeNameEn
+        - birthDate
+        - bossFullName
+        - bossPositionTitle
+        - issueDate
+        - educationEndDate
+        - educationUniversityName
+        - lastName
+        - firstName
+        - isDuplicate
+        - issuedByUniversityName
+        - fileName
+      properties:
+        id:
+          type: string
+          description: Document identifier.
+          example: B22112111
+        docStatus:
+          type: integer
+          description: Document delivery status (200 — success).
+          example: 200
+        docNumber:
+          type: string
+          description: Document number (with series).
+          example: B22 112111
+        number:
+          type: string
+          description: Document number without the series.
+          example: '112111'
+        series:
+          type: string
+          description: Document series.
+          example: B22
+        subtype:
+          type: string
+          description: >-
+            Document subtype. Known values: `diplomaOfBachelor`, `diplomaOfJuniorSpecialist`,
+            `attestationOfCompleteGeneralSecondaryEducation`,
+            `certificateOfBasicGeneralSecondaryEducation` (the list is not exhaustive; the
+            guide table spells the field as `subType`, payloads use `subtype`).
+          example: diplomaOfBachelor
+        subtypeName:
+          type: string
+          description: Document subtype name (Ukrainian).
+          example: Диплом бакалавра
+        subtypeNameEn:
+          type: string
+          description: Document subtype name (English).
+          example: Bachelor's Diploma
+        accreditationInstitutionName:
+          type: string
+          description: Accreditation institution (Ukrainian).
+          example: Міністерство освіти і науки України
+        accreditationInstitutionNameEn:
+          type: string
+          description: Accreditation institution (English).
+          example: Ministry of Education and Science of Ukraine
+        additionalAwardInfo:
+          type: string
+          description: Additional award information (Ukrainian).
+          example: Золота медаль
+        additionalAwardInfoEn:
+          type: string
+          description: Additional award information (English).
+          example: Gold medal
+        birthDate:
+          type: string
+          description: Date of birth of the person (ISO 8601).
+          example: '2001-01-10T00:00:00.000Z'
+        bossFullName:
+          type: string
+          description: Full name of the person who signed the document.
+          example: Іван ПЕТРЕНКО
+        bossFullNameEn:
+          type: string
+          description: Full name of the person who signed the document (English).
+          example: Ivan PETRENKO
+        bossPositionTitle:
+          type: string
+          description: Position of the person who signed the document.
+          example: Ректор
+        bossPositionTitleEn:
+          type: string
+          description: Position of the person who signed the document (English).
+          example: Rector
+        issueDate:
+          type: string
+          description: Date of issue (ISO 8601).
+          example: '2022-06-30T00:00:00.000Z'
+        educationEndDate:
+          type: string
+          description: Date of completion of studies (ISO 8601).
+          example: '2022-06-30T00:00:00.000Z'
+        educationUniversityName:
+          type: string
+          description: Name of the educational institution (Ukrainian).
+          example: Київський національний лінгвістичний університет
+        educationUniversityNameEn:
+          type: string
+          description: Name of the educational institution (English).
+          example: Kyiv National Linguistic University
+        lastName:
+          type: string
+          description: Last name (Ukrainian).
+          example: Бондаренко
+        lastNameEn:
+          type: string
+          description: Last name (English).
+          example: Bondarenko
+        firstName:
+          type: string
+          description: First name (Ukrainian).
+          example: Богдан
+        firstNameEn:
+          type: string
+          description: First name (English).
+          example: Bogdan
+        middleName:
+          type: string
+          description: Middle name (Ukrainian).
+          example: Петрович
+        isDuplicate:
+          type: boolean
+          description: Whether the document is a duplicate.
+          example: false
+        issuedByUniversityName:
+          type: string
+          description: Name of the institution that issued the document (Ukrainian).
+          example: Київський національний лінгвістичний університет
+        issuedByUniversityNameEn:
+          type: string
+          description: Name of the institution that issued the document (English).
+          example: Kyiv National Linguistic University
+        qualificationName:
+          type: string
+          description: Qualification name.
+          example: технік обчислювальної техніки
+        specialityName:
+          type: string
+          description: Speciality name (Ukrainian).
+          example: Середня освіта
+        specialityNameEn:
+          type: string
+          description: Speciality name (English).
+          example: Secondary education
+        specializationName:
+          type: string
+          description: Specialization name.
+          example: Мова і література (англійська)
+        studyProgramName:
+          type: string
+          description: Study program name (Ukrainian).
+          example: Іноземні мови та літератури, методика навчання іноземних мов і зарубіжної літератури (англійська мова і друга західноєвропейська мова)
+        studyProgramNameEn:
+          type: string
+          description: Study program name (English).
+          example: Foreign languages and literatures, methodology of teaching foreign languages and world literature (the English language and second West European language)
+        fileName:
+          type: string
+          description: Name of the signed and encrypted PDF file delivered to the partner endpoint.
+          example: education-document-d60887bf-7638-4fea-ae78-3af9ad3144af-30.01.2025, 17:19:46-1.pdf.p7s.p7e
+      example:
+        id: B22112111
+        docStatus: 200
+        docNumber: B22 112111
+        number: '112111'
+        series: B22
+        subtype: diplomaOfBachelor
+        subtypeName: Диплом бакалавра
+        subtypeNameEn: Bachelor's Diploma
+        accreditationInstitutionName: Міністерство освіти і науки України
+        accreditationInstitutionNameEn: Ministry of Education and Science of Ukraine
+        birthDate: '2001-01-10T00:00:00.000Z'
+        bossFullName: Іван ПЕТРЕНКО
+        bossFullNameEn: Ivan PETRENKO
+        bossPositionTitle: Ректор
+        bossPositionTitleEn: Rector
+        issueDate: '2022-06-30T00:00:00.000Z'
+        educationEndDate: '2022-06-30T00:00:00.000Z'
+        educationUniversityName: Київський національний лінгвістичний університет
+        educationUniversityNameEn: Kyiv National Linguistic University
+        lastName: Бондаренко
+        lastNameEn: Bondarenko
+        firstName: Богдан
+        firstNameEn: Bogdan
+        isDuplicate: false
+        issuedByUniversityName: Київський національний лінгвістичний університет
+        issuedByUniversityNameEn: Kyiv National Linguistic University
+        specialityName: Середня освіта
+        specialityNameEn: Secondary education
+        specializationName: Мова і література (англійська)
+        studyProgramName: Іноземні мови та літератури, методика навчання іноземних мов і зарубіжної літератури (англійська мова і друга західноєвропейська мова)
+        studyProgramNameEn: Foreign languages and literatures, methodology of teaching foreign languages and world literature (the English language and second West European language)
+        fileName: education-document-d60887bf-7638-4fea-ae78-3af9ad3144af-30.01.2025, 17:19:46-1.pdf.p7s.p7e

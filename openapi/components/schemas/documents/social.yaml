@@ -1,0 +1,512 @@
+# Diia — social report document metadata (income report, ОК-5, ОК-7).
+# Source: diia_docs/diia_metadata.md («Довідка про доходи», «Довідка OK-5», «Довідка OK-7»)
+components:
+  schemas:
+    IncomeReportInfo:
+      type: object
+      description: Data from the State Register of Individuals (ДРФО).
+      required: [RNOKPP]
+      properties:
+        RNOKPP:
+          type: string
+          description: РНОКПП of the person.
+          example: '3609606060'
+
+    IncomeReportIncome:
+      type: object
+      description: Accrued income, withheld taxes and military levy.
+      required: [IncomeAccrued, TaxCharged, SignOfIncomePrivilege, period_quarter_month, period_year, result_income]
+      properties:
+        IncomeAccrued:
+          type: number
+          description: Amount of accrued income.
+          example: 20150.5
+        IncomePaid:
+          type: number
+          description: Amount of paid income.
+          example: 20150.5
+        TaxCharged:
+          type: number
+          description: Amount of accrued tax.
+          example: 2000.52
+        TaxTransferred:
+          type: number
+          description: Amount of transferred tax.
+          example: 2000.52
+        TaxMilitaryCharged:
+          type: number
+          description: Amount of accrued military levy.
+          example: 400.2
+        TaxMilitaryTransferred:
+          type: number
+          description: Amount of transferred military levy.
+          example: 400.2
+        SignOfIncomePrivilege:
+          type: string
+          description: Code and name of the income feature / privilege feature.
+          example: 101 - Заробiтна плата
+        period_quarter_month:
+          type: string
+          description: >-
+            Month or quarter. For periods before 01.01.2021 — the quarter number; after
+            01.01.2021 — the month name; for income from entrepreneurial activity — the quarter
+            number (1–12).
+          example: Жовтень
+        period_year:
+          type: integer
+          description: Year (minimum allowed value is 2021).
+          example: 2024
+        result_income:
+          type: string
+          description: |-
+            How the answer was provided (reference values):
+            * `1` — per appendix 4ДФ of the tax calculation (before 01.01.2021 — form 1ДФ);
+            * `2` — per tax declarations of the single-tax payer / property status declarations;
+            * `3` — per the property status and income declaration (income feature 888);
+            * `14` — per the property status and income declaration (from 01.01.2023, income feature 777).
+          example: '1'
+        DateOfDismissal:
+          type: string
+          description: Date of dismissal (ISO 8601 date; returned for the month of dismissal).
+          example: '2024-11-29'
+        DateOfEmployment:
+          type: string
+          description: Date of employment (ISO 8601 date; returned for the month of employment).
+          example: '2024-12-14'
+
+    IncomeReportSourceOfIncome:
+      type: object
+      required: [IncomeTaxMilitary]
+      properties:
+        TaxAgent:
+          type: string
+          description: Tax number (or passport series/number) of the tax agent.
+          example: '43395033'
+        NameTaxAgent:
+          type: string
+          description: Name of the legal entity / full name of the individual entrepreneur.
+          example: ДП «ДІЯ»
+        IncomeTaxMilitary:
+          $ref: '#/components/schemas/IncomeReportIncome'
+
+    IncomeReportPerson:
+      type: object
+      required: [RNOKPP, last_name, first_name, middle_name, date_birth]
+      properties:
+        RNOKPP:
+          type: string
+          description: >-
+            РНОКПП of the person; for citizens whose passports contain a note allowing payments
+            by passport series and number, the value is provided without spaces. Only the РНОКПП
+            is used in Diia.
+          example: '3609606060'
+        last_name:
+          type: string
+          description: Last name.
+          example: Бондаренко
+        first_name:
+          type: string
+          description: First name.
+          example: Петро
+        middle_name:
+          type: string
+          description: Middle name.
+          example: Васильович
+        date_birth:
+          type: string
+          description: Date of birth (ISO 8601 date).
+          example: '1999-10-29'
+
+    IncomeReportPeriod:
+      type: object
+      required: [period_begin_month, period_begin_year, period_end_month, period_end_year]
+      properties:
+        period_begin_month:
+          type: integer
+          description: Month of the period start.
+          example: 1
+        period_begin_year:
+          type: integer
+          description: Year of the period start (minimum allowed value is 2021).
+          example: 2024
+        period_end_month:
+          type: integer
+          description: Month of the period end.
+          example: 12
+        period_end_year:
+          type: integer
+          description: Year of the period end.
+          example: 2024
+
+    IncomeReport:
+      type: object
+      description: Довідка про доходи (scope `income-report`).
+      required: [applicationNumber, applicationDate, Info, SourcesOfIncome, person, period, fileName]
+      properties:
+        IDrequest:
+          type: string
+          description: Identifier of the request in the tax service system.
+          example: 37dcc15d-40a9-44c7-b4b5-2c05c9a6c93a
+        applicationNumber:
+          type: string
+          description: Application number.
+          example: 4cd9fda4-40ef-4647-ade8-fca8a3255bd3
+        applicationDate:
+          type: string
+          description: Date the application for the income report was submitted.
+          example: '2025-06-02T10:09:42'
+        error:
+          type: string
+          description: Error code (`0` — no error).
+          example: '0'
+        Info:
+          $ref: '#/components/schemas/IncomeReportInfo'
+        SourcesOfIncome:
+          type: array
+          description: Sources of income.
+          items:
+            $ref: '#/components/schemas/IncomeReportSourceOfIncome'
+        person:
+          $ref: '#/components/schemas/IncomeReportPerson'
+        period:
+          $ref: '#/components/schemas/IncomeReportPeriod'
+        fileName:
+          type: string
+          description: Name of the signed and encrypted PDF file delivered to the partner endpoint.
+          example: income-report-2462b2d9-a4ba-4145-a9d3-5a3e34d861f3-02.06.2025, 10:40:31-1.pdf.p7s.p7e
+      example:
+        IDrequest: 37dcc15d-40a9-44c7-b4b5-2c05c9a6c93a
+        applicationNumber: 4cd9fda4-40ef-4647-ade8-fca8a3255bd3
+        applicationDate: '2025-06-02T10:09:42'
+        error: '0'
+        Info:
+          RNOKPP: '3609606060'
+        SourcesOfIncome:
+          - TaxAgent: '43395033'
+            NameTaxAgent: 'АТ ‘КАЧИНИЙ БІЗНЕС’'
+            IncomeTaxMilitary:
+              IncomeAccrued: 20150.5
+              IncomePaid: 20150.5
+              TaxCharged: 2000.52
+              TaxTransferred: 2000.52
+              TaxMilitaryCharged: 400.2
+              TaxMilitaryTransferred: 400.2
+              SignOfIncomePrivilege: 101 - Заробiтна плата
+              period_quarter_month: Жовтень
+              period_year: 2024
+              result_income: '1'
+          - TaxAgent: '43395033'
+            NameTaxAgent: 'АТ ‘КАЧИНИЙ БІЗНЕС’'
+            IncomeTaxMilitary:
+              IncomeAccrued: 20150.5
+              IncomePaid: 20150.5
+              TaxCharged: 2000.52
+              TaxTransferred: 2000.52
+              TaxMilitaryCharged: 400.2
+              TaxMilitaryTransferred: 400.2
+              SignOfIncomePrivilege: 101 - Заробiтна плата
+              period_quarter_month: Листопад
+              DateOfDismissal: '2024-11-29'
+              period_year: 2024
+              result_income: '1'
+          - TaxAgent: '43395033'
+            NameTaxAgent: ДП ‘ДІЯ’
+            IncomeTaxMilitary:
+              IncomeAccrued: 20150.5
+              IncomePaid: 20150.5
+              TaxCharged: 2000.52
+              TaxTransferred: 2000.52
+              TaxMilitaryCharged: 400.2
+              TaxMilitaryTransferred: 400.2
+              SignOfIncomePrivilege: 101 - Заробiтна плата
+              period_quarter_month: Грудень
+              DateOfEmployment: '2024-12-14'
+              period_year: 2024
+              result_income: '1'
+          - TaxAgent: '43395033'
+            NameTaxAgent: ДП 'ДІЯ'
+            IncomeTaxMilitary:
+              IncomeAccrued: 20150.5
+              IncomePaid: 20150.5
+              TaxCharged: 2000.52
+              TaxTransferred: 2000.52
+              TaxMilitaryCharged: 400.2
+              TaxMilitaryTransferred: 400.2
+              SignOfIncomePrivilege: 101 - Заробiтна плата
+              period_quarter_month: Січень
+              period_year: 2025
+              result_income: '1'
+          - TaxAgent: '21133352'
+            NameTaxAgent: АТ 'УНІВЕРСАЛ БАНК'
+            IncomeTaxMilitary:
+              IncomeAccrued: 100.44
+              IncomePaid: 100.44
+              TaxCharged: 18.08
+              TaxTransferred: 18.08
+              TaxMilitaryCharged: 1.51
+              TaxMilitaryTransferred: 1.51
+              SignOfIncomePrivilege: 126 - Додаткове благо
+              period_quarter_month: Березень
+              period_year: 2024
+              result_income: '1'
+          - TaxAgent: '3609606060'
+            NameTaxAgent: БОНДАРЕНКО ПЕТРО ВАСИЛЬОВИЧ
+            IncomeTaxMilitary:
+              IncomeAccrued: 2396.4
+              TaxCharged: 431.35
+              SignOfIncomePrivilege: 777 - Податкова декларація про майновий стан і доходи
+              period_quarter_month: '4'
+              period_year: 2024
+              result_income: '14'
+        person:
+          RNOKPP: '3609606060'
+          last_name: Бондаренко
+          first_name: Петро
+          middle_name: Васильович
+          date_birth: '1999-10-29'
+        period:
+          period_begin_month: 1
+          period_begin_year: 2024
+          period_end_month: 12
+          period_end_year: 2024
+        fileName: income-report-2462b2d9-a4ba-4145-a9d3-5a3e34d861f3-02.06.2025, 10:40:31-1.pdf.p7s.p7e
+
+    EmploymentCertificateMonthlyData:
+      type: object
+      description: Monthly wages / insurance record; the set of `sumN` fields depends on the months present.
+      properties:
+        sum1:
+          type: string
+          description: Wage amount for month 1 (January).
+          example: '18609.80'
+        sum2:
+          type: string
+          description: Wage amount for month 2 (February).
+          example: '18394.71'
+        sum3:
+          type: string
+          description: Wage amount for month 3 (March).
+          example: '18647.35'
+        sum4:
+          type: string
+          description: Wage amount for month 4 (April).
+          example: '15635.15'
+        sum5:
+          type: string
+          description: Wage amount for month 5 (May).
+          example: '17768.80'
+        sum6:
+          type: string
+          description: Wage amount for month 6 (June).
+          example: '17768.80'
+        sum7:
+          type: string
+          description: Wage amount for month 7 (July).
+          example: '15845.77'
+        sum8:
+          type: string
+          description: Wage amount for month 8 (August).
+          example: '9500.50'
+        sum9:
+          type: string
+          description: Wage amount for month 9 (September).
+          example: '25285.04'
+        sum10:
+          type: string
+          description: Wage amount for month 10 (October).
+          example: '22037.70'
+        sum11:
+          type: string
+          description: Wage amount for month 11 (November).
+          example: '29370.60'
+        sum12:
+          type: string
+          description: Wage amount for month 12 (December).
+          example: '24074.72'
+        monthExp:
+          type: number
+          description: Number of days of insurance record credited for this month (maximum 28–31).
+          example: 31
+
+    EmploymentCertificateInsuredData:
+      type: object
+      description: Data about an insurant (employer), income and record for a year.
+      required: [edrpo, companyName, year, monthlyData]
+      properties:
+        edrpo:
+          type: string
+          description: ЄДРПОУ code of the employer.
+          example: '05456545'
+        companyName:
+          type: string
+          description: Name of the employer (insurant).
+          example: КОМУНАЛЬНЕ ПIДПРИЄМСТВО ПО УТРИМАННЮ ЗЕЛЕНИХ НАСАДЖЕНЬ ОБОЛОНСЬКОГО РАЙОНУ М.КИЄВА
+        year:
+          oneOf:
+            - type: integer
+            - type: string
+          description: Reporting year; returned as a number in some payloads and as a string in others.
+          example: 2017
+        monthlyData:
+          type: array
+          items:
+            $ref: '#/components/schemas/EmploymentCertificateMonthlyData'
+
+    EmploymentCertificate:
+      type: object
+      description: Shared structure of the ОК-5 / ОК-7 certificate metadata.
+      required: [lastName, name, kss, numident, insuredData, fileName]
+      properties:
+        lastName:
+          type: string
+          description: Last name (Ukrainian).
+          example: Дія
+        name:
+          type: string
+          description: First name (Ukrainian).
+          example: Надія
+        patronymic:
+          type: string
+          description: Middle name (Ukrainian).
+          example: Володимирівна
+        kss:
+          type: string
+          description: Number of the personal electronic account card of the insured person.
+          example: ''
+        numident:
+          type: string
+          description: РНОКПП of the user.
+          example: '123456701'
+        passport:
+          type: string
+          description: Passport data of the person (if available).
+          example: ''
+        insuredData:
+          type: array
+          description: Insurants (employers), income and insurance record by year.
+          items:
+            $ref: '#/components/schemas/EmploymentCertificateInsuredData'
+        fileName:
+          type: string
+          description: Name of the signed and encrypted PDF file delivered to the partner endpoint.
+          example: ok5-03c42ee1-e354-4e56-b2ca-93c9fe2cdaf7-26.05.2026, 16:31:13-1.p7s.p7e
+
+    Ok5:
+      description: Довідка ОК-5 (scope `ok5`). Contains data for the whole period.
+      allOf:
+        - $ref: '#/components/schemas/EmploymentCertificate'
+      example:
+        lastName: Дія
+        name: Надія
+        patronymic: Володимирівна
+        kss: ''
+        numident: '123456701'
+        passport: ''
+        insuredData:
+          - edrpo: '05456545'
+            companyName: КОМУНАЛЬНЕ ПIДПРИЄМСТВО ПО УТРИМАННЮ ЗЕЛЕНИХ НАСАДЖЕНЬ ОБОЛОНСЬКОГО РАЙОНУ М.КИЄВА
+            year: 2017
+            monthlyData:
+              - sum1: '18609.80'
+                monthExp: 31
+              - sum2: '18394.71'
+                monthExp: 30
+              - sum3: '18647.35'
+                monthExp: 29
+              - sum4: '15635.15'
+                monthExp: 28
+              - sum5: '17768.80'
+                monthExp: 27
+              - sum6: '17768.80'
+                monthExp: 31
+              - sum7: '15845.77'
+                monthExp: 30
+          - edrpo: '38567715'
+            companyName: КОМУНАЛЬНИЙ ЗАКЛАД ВИКОНАВЧОГО ОРГАНУ КИЇВСЬКОЇ МІСЬКОЇ РАДИ (КИЇВСЬКОЇ МІСЬКОЇ ДЕРЖАВНОЇ АДМІНІСТРАЦІЇ) "КИЇВСЬКИЙ МІСЬКИЙ МЕТОДИЧНИЙ ЦЕНТР ЗАКЛАДІВ КУЛЬТУРИ ТА НАВЧАЛЬНИХ ЗАКЛАДІВ"
+            year: 2022
+            monthlyData:
+              - sum1: '0.00'
+                monthExp: 0
+              - sum2: '6500.70'
+                monthExp: 0
+              - sum3: '7500.33'
+                monthExp: 0
+              - sum4: '8500.50'
+                monthExp: 0
+              - sum5: '9500.15'
+                monthExp: 0
+              - sum6: '7500.93'
+                monthExp: 0
+              - sum7: '2500.52'
+                monthExp: 0
+              - sum8: '9500.50'
+                monthExp: 0
+              - sum9: '25285.04'
+                monthExp: 0
+              - sum10: '22037.70'
+                monthExp: 0
+              - sum11: '29370.60'
+                monthExp: 0
+              - sum12: '24074.72'
+                monthExp: 0
+        fileName: ok5-03c42ee1-e354-4e56-b2ca-93c9fe2cdaf7-26.05.2026, 16:31:13-1.p7s.p7e
+
+    Ok7:
+      description: Довідка ОК-7 (scope `ok7`). Contains data starting from 2011 only.
+      allOf:
+        - $ref: '#/components/schemas/EmploymentCertificate'
+      example:
+        lastName: Дія
+        name: Надія
+        patronymic: Володимирівна
+        kss: ''
+        numident: '123456701'
+        passport: ''
+        insuredData:
+          - edrpo: '05456545'
+            companyName: КОМУНАЛЬНЕ ПIДПРИЄМСТВО ПО УТРИМАННЮ ЗЕЛЕНИХ НАСАДЖЕНЬ ОБОЛОНСЬКОГО РАЙОНУ М.КИЄВА
+            year: 2017
+            monthlyData:
+              - sum1: '18609.80'
+                monthExp: 31
+              - sum2: '18394.71'
+                monthExp: 30
+              - sum3: '18647.35'
+                monthExp: 29
+              - sum4: '15635.15'
+                monthExp: 28
+              - sum5: '17768.80'
+                monthExp: 27
+              - sum6: '17768.80'
+                monthExp: 31
+              - sum7: '15845.77'
+                monthExp: 30
+          - edrpo: '38567717'
+            companyName: КОМУНАЛЬНИЙ ЗАКЛАД ВИКОНАВЧОГО ОРГАНУ КИЇВСЬКОЇ МІСЬКОЇ РАДИ (КИЇВСЬКОЇ МІСЬКОЇ ДЕРЖАВНОЇ АДМІНІСТРАЦІЇ) "КИЇВСЬКИЙ МІСЬКИЙ МЕТОДИЧНИЙ ЦЕНТР ЗАКЛАДІВ КУЛЬТУРИ ТА НАВЧАЛЬНИХ ЗАКЛАДІВ"
+            year: 2022
+            monthlyData:
+              - sum1: '0.00'
+                monthExp: 0
+              - sum2: '6500.70'
+                monthExp: 0
+              - sum3: '7500.33'
+                monthExp: 0
+              - sum4: '8500.50'
+                monthExp: 0
+              - sum5: '9500.15'
+                monthExp: 0
+              - sum6: '7500.93'
+                monthExp: 0
+              - sum7: '2500.52'
+                monthExp: 0
+              - sum8: '9500.50'
+                monthExp: 0
+              - sum9: '25285.04'
+                monthExp: 0
+              - sum10: '22037.70'
+                monthExp: 0
+              - sum11: '29370.60'
+                monthExp: 0
+              - sum12: '24074.72'
+                monthExp: 0
+        fileName: ok7-03c42ee1-e354-4e56-b2ca-93c9fe2cdaf7-26.05.2026, 16:31:13-1.p7s.p7e

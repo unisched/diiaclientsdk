@@ -1,0 +1,285 @@
+# Diia — birth record document metadata.
+# Source: diia_docs/diia_metadata.md («Свідоцтво про народження користувача», «Свідоцтво про народження дитини»)
+components:
+  schemas:
+    BirthRecordDocument:
+      type: object
+      description: Data of the birth certificate itself.
+      required: [id, serie, serieOriginal, number, issueDate]
+      properties:
+        id:
+          type: string
+          description: Document number with the series.
+          example: БК 49337
+        serie:
+          type: string
+          description: Document series.
+          example: І-БК
+        serieOriginal:
+          type: string
+          description: Original document series.
+          example: І-БК
+        number:
+          type: string
+          description: Document number.
+          example: '49337'
+        serieNumber:
+          type: string
+          description: Series and number of the document (in some payloads the field is named `serialNumber`).
+          example: І-БК 49337
+        serialNumber:
+          type: string
+          description: Series and number of the document (alternative field name of `serieNumber`).
+          example: І-БК 49337
+        department:
+          type: string
+          description: >-
+            Issuing authority. Required for `user-birth-record` payloads; optional (per the
+            guide table) for `birth-certificate` payloads.
+          example: Не вказано
+        issueDate:
+          type: string
+          description: Date of issue, DD.MM.YYYY.
+          example: '22.12.1998'
+
+    BirthRecordChild:
+      type: object
+      description: Data of the person the birth record was issued to.
+      required: [lastName, firstName, middleName, gender, rnokpp, birthDate]
+      properties:
+        lastName:
+          type: string
+          description: Last name.
+          example: Бондаренко
+        firstName:
+          type: string
+          description: First name.
+          example: Богдан
+        middleName:
+          type: string
+          description: Middle name.
+          example: Петрович
+        gender:
+          type: string
+          description: Gender.
+          example: чоловіча
+        rnokpp:
+          type: string
+          description: РНОКПП of the person.
+          example: '3609606060'
+        birthDate:
+          type: string
+          description: Date of birth, DD.MM.YYYY.
+          example: '10.10.1998'
+        birthPlace:
+          type: string
+          description: Place of birth.
+          example: Україна, Київська область, Яготинський район, місто Яготин
+        birthState:
+          type: string
+          description: Country of birth.
+          example: Україна
+        birthRegion:
+          type: string
+          description: Region of birth.
+          example: Київ
+        birthLocalityType:
+          type: string
+          description: >-
+            Type of the settlement; provided when available. Possible values: місто, район,
+            селище міського типу, село, селище, сільрада, селищна рада.
+          example: Місто
+        birthLocality:
+          type: string
+          description: Name of the settlement (including the cities of Kyiv and Sevastopol).
+          example: Київ
+
+    BirthRecordParent:
+      type: object
+      description: Data of a parent.
+      required: [fullName, citizenship, birthDate, deprivedOfParentRights]
+      properties:
+        fullName:
+          type: string
+          description: Full name of the parent.
+          example: Бондаренко Петро Іванович
+        citizenship:
+          type: string
+          description: Citizenship of the parent.
+          example: Громадянин України
+        rnokpp:
+          type: string
+          description: РНОКПП of the parent (may be absent for one of the parents).
+          example: '2763276327'
+        birthDate:
+          type: string
+          description: Date of birth of the parent, DD.MM.YYYY.
+          example: '27.07.1975'
+        deprivedOfParentRights:
+          type: boolean
+          description: Whether the parent is deprived of parental rights.
+          example: false
+
+    BirthRecordParents:
+      type: object
+      required: [father, mother]
+      properties:
+        father:
+          $ref: '#/components/schemas/BirthRecordParent'
+        mother:
+          $ref: '#/components/schemas/BirthRecordParent'
+
+    BirthRecordAct:
+      type: object
+      description: Civil status act of the birth record.
+      required: [name, number, registrationPlace, date, parenthood]
+      properties:
+        name:
+          type: string
+          description: Act name.
+          example: №251 від 10.12.1998
+        arRegNumber:
+          type: string
+          description: Act record number.
+          example: '00111927001'
+        number:
+          type: string
+          description: Act number.
+          example: '251'
+        registrationPlace:
+          type: string
+          description: Place of act registration.
+          example: Відділ державної реєстрації актів цивільного стану Яготинського районного управління юстиції Київської області
+        date:
+          type: string
+          description: Date of act registration, DD.MM.YYYY.
+          example: '10.12.1998'
+        parenthood:
+          type: string
+          description: Number of parents in the record.
+          example: '2'
+
+    UserBirthRecord:
+      type: object
+      description: Свідоцтво про народження користувача (scope `user-birth-record`).
+      required: [id, document, child, parents, act, fileName]
+      properties:
+        id:
+          type: string
+          description: Document identifier.
+          example: '00094209420'
+        document:
+          $ref: '#/components/schemas/BirthRecordDocument'
+        child:
+          $ref: '#/components/schemas/BirthRecordChild'
+        parents:
+          $ref: '#/components/schemas/BirthRecordParents'
+        act:
+          $ref: '#/components/schemas/BirthRecordAct'
+        fileName:
+          type: string
+          description: Name of the signed and encrypted PDF file delivered to the partner endpoint.
+          example: user-birth-record-4155da6c-58dc-4bf2-aa8b-c1f06caf2afe-24.03.2025, 16:40:37-1.pdf.p7s.p7e
+      example:
+        id: '00094209420'
+        document:
+          id: БК 49337
+          serie: І-БК
+          serieOriginal: І-БК
+          number: '49337'
+          serialNumber: І-БК 49337
+          department: Не вказано
+          issueDate: '22.12.1998'
+        child:
+          lastName: Бондаренко
+          firstName: Богдан
+          middleName: Петрович
+          gender: чоловіча
+          rnokpp: '3609606060'
+          birthDate: '10.10.1998'
+          birthPlace: Україна, Київська область, Яготинський район, місто Яготин
+          birthState: Україна
+          birthRegion: Київ
+          birthLocalityType: Місто
+          birthLocality: Київ
+        parents:
+          father:
+            fullName: Бондаренко Петро Іванович
+            citizenship: Громадянин України
+            rnokpp: '2763276327'
+            birthDate: '27.07.1975'
+            deprivedOfParentRights: false
+          mother:
+            fullName: Бондаренко Валентина Володимирівна
+            citizenship: Громадянка України
+            rnokpp: '2846284628'
+            birthDate: '04.11.1977'
+            deprivedOfParentRights: false
+        act:
+          name: №251 від 10.12.1998
+          number: '251'
+          registrationPlace: Відділ державної реєстрації актів цивільного стану Яготинського районного управління юстиції Київської області
+          date: '10.12.1998'
+          parenthood: '2'
+        fileName: user-birth-record-4155da6c-58dc-4bf2-aa8b-c1f06caf2afe-24.03.2025, 16:40:37-1.pdf.p7s.p7e
+
+    BirthCertificate:
+      type: object
+      description: Свідоцтво про народження дитини (scope `birth-certificate`).
+      required: [id, document, child, parents, act, fileName]
+      properties:
+        id:
+          type: string
+          description: Document identifier.
+          example: '00044452699'
+        document:
+          $ref: '#/components/schemas/BirthRecordDocument'
+        child:
+          $ref: '#/components/schemas/BirthRecordChild'
+        parents:
+          $ref: '#/components/schemas/BirthRecordParents'
+        act:
+          $ref: '#/components/schemas/BirthRecordAct'
+        fileName:
+          type: string
+          description: Name of the signed and encrypted PDF file delivered to the partner endpoint.
+          example: birth-certificate-e57aab7f-243e-4459-b50a-30f39f31578c-16.12.2024, 18:17:15-1.pdf.p7s.p7e
+      example:
+        id: '00044452699'
+        document:
+          id: КK134340
+          serie: 1-КK
+          serieOriginal: 1-КK
+          number: '134340'
+          serieNumber: 1-КK 134340
+          department: Відділ державної реєстрації актів цивільного стану Яготинського районного управління юстиції Київської області
+          issueDate: '20.02.1990'
+        child:
+          lastName: Дія
+          firstName: Надія
+          middleName: Володимирівна
+          gender: жіноча
+          rnokpp: '3434343434'
+          birthDate: '20.02.1990'
+          birthPlace: Україна, Київська область, Яготинський район, місто Яготин
+          birthState: Україна
+        parents:
+          father:
+            fullName: Дія Володимир Андрійович
+            citizenship: Громадянин України
+            rnokpp: '2525252525'
+            birthDate: '07.07.1970'
+            deprivedOfParentRights: false
+          mother:
+            fullName: Дія Анна Володимирівна
+            citizenship: Громадянка України
+            birthDate: '05.05.1975'
+            deprivedOfParentRights: false
+        act:
+          name: №27 від 20.06.1996
+          arRegNumber: '2847561928'
+          number: '27'
+          registrationPlace: Яготинська селищна рада Яготинського району Київської області
+          date: '20.01.1990'
+          parenthood: '2'
+        fileName: birth-certificate-e57aab7f-243e-4459-b50a-30f39f31578c-16.12.2024, 18:17:15-1.pdf.p7s.p7e

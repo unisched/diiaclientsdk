@@ -1,0 +1,489 @@
+# Diia — identity document metadata (IDP reference, residence permits, pension card, veteran certificate, student ID).
+# Source: diia_docs/diia_metadata.md
+components:
+  schemas:
+    DocIdentity:
+      type: object
+      description: Document that identifies the person.
+      required: [number, issueDate, department]
+      properties:
+        number:
+          type: string
+          description: Series and number of the document as a single string without a separator.
+          example: ІНО404040
+        issueDate:
+          type: string
+          description: Date of issue of the document, DD.MM.YYYY.
+          example: '14.11.2002'
+        department:
+          type: string
+          description: Issuing authority of the document.
+          example: ВРАГС Калінінського РУЮ м.Донецька
+
+    InternallyDisplacedReference:
+      type: object
+      description: Довідка внутрішньо переміщеної особи (ВПО), scope `reference-internally-displaced-person`.
+      required: [docType, docNumber, lastName, firstName, birthDate, gender, docIdentity, address, fileName]
+      properties:
+        docType:
+          type: string
+          description: |-
+            Type of the reference:
+            * `person` — personal;
+            * `accompanied` — accompanied by a legal representative.
+          enum: [person, accompanied]
+          example: person
+        docNumber:
+          type: string
+          description: Number of the IDP reference.
+          example: 4004-10400
+        department:
+          type: string
+          description: >-
+            Authority that issued the reference. The value is filled in by the document owner or
+            their legal representative and may contain errors or be incomplete.
+          example: Дніпровське РУПСЗН м.Київ
+        lastName:
+          type: string
+          description: Last name of the IDP.
+          example: БОНДАРЕНКО
+        firstName:
+          type: string
+          description: First name of the IDP.
+          example: БОГДАН
+        middleName:
+          type: string
+          description: Middle name of the IDP.
+          example: ПЕТРОВИЧ
+        issueDate:
+          type: string
+          description: Date of issue of the reference, DD.MM.YYYY.
+          example: '19.10.2016'
+        birthDate:
+          type: string
+          description: Date of birth, DD.MM.YYYY.
+          example: '01.01.2000'
+        gender:
+          type: string
+          description: Gender.
+          enum: [Жінка, Чоловік]
+          example: Чоловік
+        legalRepresentative:
+          type: string
+          description: >-
+            Legal representative. When `docType` is `accompanied`, contains the full name of the
+            legal representative.
+        docIdentity:
+          $ref: '#/components/schemas/DocIdentity'
+        address:
+          type: object
+          description: Addresses of the document owner.
+          required: [registration, actual]
+          properties:
+            birth:
+              type: string
+              description: >-
+                Place of birth. The value is filled in by the document owner or their legal
+                representative and may contain errors or be incomplete.
+              example: м.Донецьк
+            registration:
+              type: string
+              description: Registered place of residence.
+              example: 83001, Донецька обл., Донецьк, Б-Р ШЕВЧЕНКА, буд. 1, кв. 1
+            actual:
+              type: string
+              description: Actual place of residence / stay.
+              example: 07700, м.Яготин, ВУЛ. КИЇВСЬКА, буд. 1, кв. 1
+        fileName:
+          type: string
+          description: Name of the signed and encrypted PDF file delivered to the partner endpoint.
+          example: reference-internally-displaced-person-4ba81a33-80e9-423f-847a-a19ccc5a52a5-27.01.2025, 17:27:29-1.pdf.p7s.p7e
+      example:
+        docType: person
+        docNumber: 4004-10400
+        department: Дніпровське РУПСЗН м.Київ
+        lastName: БОНДАРЕНКО
+        firstName: БОГДАН
+        middleName: ПЕТРОВИЧ
+        issueDate: '19.10.2016'
+        birthDate: '01.01.2000'
+        gender: Чоловік
+        docIdentity:
+          number: ІНО404040
+          issueDate: '14.11.2002'
+          department: ВРАГС Калінінського РУЮ м.Донецька
+        address:
+          birth: м.Донецьк
+          registration: 83001, Донецька обл., Донецьк, Б-Р ШЕВЧЕНКА, буд. 1, кв. 1
+          actual: 07700, м.Яготин, ВУЛ. КИЇВСЬКА, буд. 1, кв. 1
+        fileName: reference-internally-displaced-person-4ba81a33-80e9-423f-847a-a19ccc5a52a5-27.01.2025, 17:27:29-1.pdf.p7s.p7e
+
+    ResidencePermit:
+      type: object
+      description: Shared structure of e-посвідка на постійне/тимчасове проживання metadata.
+      required:
+        - docNumber
+        - id
+        - taxpayerNumber
+        - firstNameUA
+        - lastNameUA
+        - firstNameEN
+        - lastNameEN
+        - recordNumber
+        - gender
+        - birthday
+        - issueDate
+        - expirationDate
+        - authority
+        - issueReason
+        - fileName
+      properties:
+        docNumber:
+          type: string
+          description: Document number.
+          example: '905729037'
+        id:
+          type: string
+          description: Identifier of the record in the system.
+          example: 1971010529037-2023-12-08
+        taxpayerNumber:
+          type: string
+          description: РНОКПП of the person.
+          example: '7775729037'
+        firstNameUA:
+          type: string
+          description: First name (Ukrainian).
+          example: Ірина
+        lastNameUA:
+          type: string
+          description: Last name (Ukrainian).
+          example: Михальчук
+        firstNameEN:
+          type: string
+          description: First name (English).
+          example: Iryna
+        lastNameEN:
+          type: string
+          description: Last name (English).
+          example: Mykhalchuk
+        recordNumber:
+          type: string
+          description: Record number.
+          example: '1971010529037'
+        gender:
+          type: string
+          description: Gender.
+          example: Ж
+        birthday:
+          type: string
+          description: Date of birth, DD.MM.YYYY.
+          example: '05.01.1971'
+        issueDate:
+          type: string
+          description: Date of issue, DD.MM.YYYY.
+          example: '08.12.2023'
+        expirationDate:
+          type: string
+          description: Valid until, DD.MM.YYYY.
+          example: '01.01.2033'
+        authority:
+          type: string
+          description: Issuing authority.
+          example: Відділ централізованного оформлення документів №17 ГУ ДМС України в м. Києві
+        issueReason:
+          type: string
+          description: Reason for issuing the permit.
+          example: Закінчення строку дії посвідки на постійне проживання
+        nationality:
+          type: array
+          description: Nationality (citizenship).
+          items:
+            type: string
+          example: [Республіка Молдова]
+        birthCountry:
+          type: string
+          description: Place of birth.
+          example: Республіка Молдова
+        registration:
+          type: string
+          description: Registered place of residence.
+          example: ''
+        fileName:
+          type: string
+          description: Name of the signed and encrypted PDF file delivered to the partner endpoint.
+          example: residence-permit-permanent-33bc122c-2253-4ef1-bdfb-2e3706e4a84d-19.01.2026, 11:35:51-1.pdf.p7s.p7e
+
+    ResidencePermitPermanent:
+      description: е-посвідка на постійне проживання (scope `residence-permit-permanent`).
+      allOf:
+        - $ref: '#/components/schemas/ResidencePermit'
+      example:
+        docNumber: '905729037'
+        id: 1971010529037-2023-12-08
+        taxpayerNumber: '7775729037'
+        firstNameUA: Ірина
+        lastNameUA: Михальчук
+        firstNameEN: Iryna
+        lastNameEN: Mykhalchuk
+        recordNumber: '1971010529037'
+        gender: Ж
+        birthday: '05.01.1971'
+        issueDate: '08.12.2023'
+        expirationDate: '01.01.2033'
+        authority: Відділ централізованного оформлення документів №17 ГУ ДМС України в м. Києві
+        issueReason: Закінчення строку дії посвідки на постійне проживання
+        nationality: [Республіка Молдова]
+        birthCountry: Республіка Молдова
+        registration: ''
+        fileName: residence-permit-permanent-33bc122c-2253-4ef1-bdfb-2e3706e4a84d-19.01.2026, 11:35:51-1.pdf.p7s.p7e
+
+    ResidencePermitTemporary:
+      description: е-посвідка на тимчасове проживання (scope `residence-permit-temporary`).
+      allOf:
+        - $ref: '#/components/schemas/ResidencePermit'
+      example:
+        docNumber: '806686602'
+        id: 1993010586602-2023-04-03
+        taxpayerNumber: '7776686602'
+        firstNameUA: Тетяна
+        lastNameUA: Кравченко
+        firstNameEN: Tetiana
+        lastNameEN: Kravchenko
+        recordNumber: '1993010586602'
+        gender: Ж
+        birthday: '05.01.1993'
+        issueDate: '03.04.2023'
+        expirationDate: '08.03.2033'
+        authority: Відділ централізованного оформлення документів №17 ГУ ДМС України в м. Києві
+        issueReason: Закінчення строку дії посвідки на тимчасове проживання
+        nationality: [Республіка Молдова]
+        birthCountry: Республіка Молдова
+        registration: ''
+        fileName: residence-permit-temporary-f1163645-20ff-4c37-b257-03cb935f2d03-19.01.2026, 13:58:05-1.pdf.p7s.p7e
+
+    PensionCard:
+      type: object
+      description: Пенсійне посвідчення (scope `pension-card`).
+      required:
+        - docNumber
+        - id
+        - firstNameUA
+        - lastNameUA
+        - middleNameUA
+        - birthday
+        - issueDate
+        - expirationDate
+        - pensionCaseNumber
+        - pensionType
+        - fileName
+      properties:
+        docNumber:
+          type: string
+          description: >-
+            РНОКПП (ІПН) of the person. The same number is also returned in `taxpayerNumber` of
+            the ID-card and foreign passport metadata.
+          example: '3609606060'
+        id:
+          type: string
+          description: Document identifier.
+          example: 35C1IJ2FEL3B
+        firstNameUA:
+          type: string
+          description: First name (Ukrainian).
+          example: Петренко
+        lastNameUA:
+          type: string
+          description: Last name (Ukrainian).
+          example: Павло
+        middleNameUA:
+          type: string
+          description: Middle name (Ukrainian).
+          example: Петрович
+        gender:
+          type: string
+          description: Gender (Ч/Ж).
+          example: Ч
+        birthday:
+          type: string
+          description: Date of birth, DD.MM.YYYY.
+          example: '10.10.1998'
+        issueDate:
+          type: string
+          description: Date of issue, DD.MM.YYYY.
+          example: '23.09.2014'
+        expirationDate:
+          type: string
+          description: Valid until; may also contain the value «Довічно».
+          example: '12.10.2016'
+        pensionCaseNumber:
+          type: string
+          description: Pension case number.
+          example: '147474'
+        pensionType:
+          type: string
+          description: Pension type as stated in the certificate (not a reference value).
+          example: У разі втрати годувальника, ПЕТРЕНКО ОЛЬГА ВОЛОДИМИРІВНА
+        fileName:
+          type: string
+          description: Name of the signed and encrypted PDF file delivered to the partner endpoint.
+          example: pension-card-87f89468-f213-472b-b2a4-697bda8b61c6-21.02.2025, 12:54:30-1.pdf.p7s.p7e
+      example:
+        docNumber: '3609606060'
+        id: 35C1IJ2FEL3B
+        firstNameUA: Петренко
+        lastNameUA: Павло
+        middleNameUA: Петрович
+        gender: Ч
+        birthday: '10.10.1998'
+        issueDate: '23.09.2014'
+        expirationDate: '12.10.2016'
+        pensionCaseNumber: '147474'
+        pensionType: У разі втрати годувальника, ПЕТРЕНКО ОЛЬГА ВОЛОДИМИРІВНА
+        fileName: pension-card-87f89468-f213-472b-b2a4-697bda8b61c6-21.02.2025, 12:54:30-1.pdf.p7s.p7e
+
+    VeteranCertificate:
+      type: object
+      description: Посвідчення ветерана (scope `veteran-certificate`).
+      required:
+        - docNumber
+        - id
+        - docType
+        - law
+        - lawArticle
+        - lastName
+        - firstName
+        - middleName
+        - department
+        - personId
+        - issueDate
+        - expirationDate
+        - fileName
+      properties:
+        docNumber:
+          type: string
+          description: Certificate number.
+          example: УБД 159338
+        id:
+          type: string
+          description: Document identifier.
+          example: UBD159338
+        docType:
+          type: string
+          description: Document type.
+          example: Посвідчення учасника бойових дій
+        law:
+          type: string
+          description: Law under which the certificate was issued.
+          example: 'ЗУ "Про статус ветеранів війни, гарантії їх соціального захисту"'
+        lawArticle:
+          type: string
+          description: Article of the law.
+          example: Стаття 6 пункт 19
+        disabilityGroup:
+          type: string
+          description: 'Disability group: `I група`, `II група`, `III група`.'
+          example: III група
+        lastName:
+          type: string
+          description: Last name.
+          example: Дія
+        firstName:
+          type: string
+          description: First name.
+          example: Надія
+        middleName:
+          type: string
+          description: Middle name.
+          example: Володимирівна
+        department:
+          type: string
+          description: Issuing authority.
+          example: ДПС УКРАЇНИ АТО
+        personId:
+          type: string
+          description: Identifier of the person in the registry.
+          example: 6b191e2d-1bfb-4c07-8c25-b1344ea11299
+        issueDate:
+          type: string
+          description: Date of issue, DD.MM.YYYY.
+          example: '17.11.2015'
+        expirationDate:
+          type: string
+          description: Valid until, DD.MM.YYYY.
+          example: '14.04.2125'
+        fileName:
+          type: string
+          description: Name of the signed and encrypted PDF file delivered to the partner endpoint.
+          example: veteran-certificate-2a39810a-ead9-496b-99a2-cc88cda2d152-14.04.2025, 13:33:43-1.pdf.p7s.p7e
+      example:
+        docNumber: УБД 159338
+        id: UBD159338
+        docType: Посвідчення учасника бойових дій
+        law: 'ЗУ "Про статус ветеранів війни, гарантії їх соціального захисту"'
+        lawArticle: Стаття 6 пункт 19
+        disabilityGroup: III група
+        lastName: Дія
+        firstName: Надія
+        middleName: Володимирівна
+        department: ДПС УКРАЇНИ АТО
+        personId: 6b191e2d-1bfb-4c07-8c25-b1344ea11299
+        issueDate: '17.11.2015'
+        expirationDate: '14.04.2125'
+        fileName: veteran-certificate-2a39810a-ead9-496b-99a2-cc88cda2d152-14.04.2025, 13:33:43-1.pdf.p7s.p7e
+
+    StudentIdCard:
+      type: object
+      description: Студентський квиток (scope `student-id-card`).
+      required: [docNumber, lastNameUA, middleNameUA, collegeName, expirationDate, educationType, fileName]
+      properties:
+        docNumber:
+          type: string
+          description: Series and number of the document.
+          example: KB 14141414
+        lastNameUA:
+          type: string
+          description: Last name (Ukrainian).
+          example: Бондаренко
+        firstNameUA:
+          type: string
+          description: First name (Ukrainian). Optional per the guide table.
+          example: Богдан
+        middleNameUA:
+          type: string
+          description: Middle name (Ukrainian).
+          example: Петрович
+        collegeName:
+          type: string
+          description: Name of the educational institution.
+          example: Національний технічний університет України «Київський політехнічний інститут імені Ігоря Сікорського»
+        facultyName:
+          type: string
+          description: Name of the faculty.
+          example: Факультет інформатики та обчислювальної техніки
+        issueDate:
+          type: string
+          description: Date of issue, DD.MM.YYYY.
+          example: '07.09.2023'
+        expirationDate:
+          type: string
+          description: Valid until, DD.MM.YYYY.
+          example: '31.05.2025'
+        educationType:
+          type: string
+          description: Form of education.
+          example: денна
+        fileName:
+          type: string
+          description: Name of the signed and encrypted PDF file delivered to the partner endpoint.
+          example: student-id-card-68d9a0a7-ce0d-41c1-b3d1-218177c88180-30.01.2025, 15:37:23-1.pdf.p7s.p7e
+      example:
+        docNumber: KB 14141414
+        lastNameUA: Бондаренко
+        firstNameUA: Богдан
+        middleNameUA: Петрович
+        collegeName: Національний технічний університет України «Київський політехнічний інститут імені Ігоря Сікорського»
+        facultyName: Факультет інформатики та обчислювальної техніки
+        issueDate: '07.09.2023'
+        expirationDate: '31.05.2025'
+        educationType: денна
+        fileName: student-id-card-68d9a0a7-ce0d-41c1-b3d1-218177c88180-30.01.2025, 15:37:23-1.pdf.p7s.p7e

@@ -1,0 +1,187 @@
+# Diia REST API — branch (відділення) schemas.
+# Sources: diia_docs/diia_sharing.md §2.3, diia_docs/diia_sign.md §3.2
+components:
+  schemas:
+    BranchScopes:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      description: >-
+        Scopes granted to the branch. Use `sharing` for document sharing and `diiaId` for
+        Diia.Sign. `diiaId` accepts a single value — combining `hashedFilesSigning` and `auth`
+        on one branch is rejected with `403 "Only one scope value could be provided for the
+        diiaId scope"`; create a separate branch per Diia.Sign scenario.
+      properties:
+        sharing:
+          type: array
+          description: Document types that may be shared from this branch.
+          items:
+            $ref: 'common.yaml#/components/schemas/DocumentType'
+        diiaId:
+          type: array
+          maxItems: 1
+          description: Diia.Sign scenario enabled for this branch.
+          items:
+            $ref: 'common.yaml#/components/schemas/DiiaIdScope'
+
+    BranchCreateRequest:
+      type: object
+      description: |-
+        Branch (відділення) request body, used both for creation and update. Field names are
+        case-sensitive; data must be sent in UTF-8 encoding. Before updating a branch, delete the
+        offers created on it.
+
+        `customFullName` / `customFullAddress` override what the Diia app shows to the user in the
+        sharing/signing request.
+      required: [name, email, region, district, location, street, house, deliveryTypes, offerRequestType, scopes]
+      properties:
+        customFullName:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: >-
+            Full name of the document requester. If set, it is shown in the Diia app request
+            instead of the concatenation of the partner name and the branch `name`.
+          example: Повна назва запитувача документа
+        customFullAddress:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: >-
+            Full branch address in your own format. If set, it is shown in the Diia app request
+            instead of the `region`, `district`, `location`, `street`, `house` concatenation.
+          example: Повна адреса відділення
+        name:
+          type: string
+          minLength: 1
+          maxLength: 32
+          description: Branch name.
+          example: Назва відділення
+        email:
+          type: string
+          format: email
+          minLength: 6
+          maxLength: 100
+          description: Branch e-mail address.
+          example: test@email.com
+        region:
+          type: string
+          minLength: 4
+          maxLength: 100
+          description: Region (область).
+          example: Київська обл.
+        district:
+          type: string
+          minLength: 4
+          maxLength: 100
+          description: District (район).
+          example: Києво-Святошинський р-н
+        location:
+          type: string
+          minLength: 4
+          maxLength: 100
+          description: >-
+            City. The sharing integration guide states minLength 2 while the Diia.Sign guide
+            states minLength 4 — the stricter bound is used here.
+          example: м. Вишневе
+        street:
+          type: string
+          minLength: 4
+          maxLength: 100
+          description: Street.
+          example: вул. Київська
+        house:
+          type: string
+          minLength: 1
+          maxLength: 20
+          description: Building number.
+          example: 2г
+        deliveryTypes:
+          type: array
+          description: Delivery types; must contain `api` for API integration.
+          items:
+            $ref: 'common.yaml#/components/schemas/DeliveryType'
+        offerRequestType:
+          $ref: 'common.yaml#/components/schemas/OfferRequestType'
+        scopes:
+          $ref: '#/components/schemas/BranchScopes'
+      example:
+        customFullName: Повна назва запитувача документа
+        customFullAddress: Повна адреса відділення
+        name: Назва відділення
+        email: test@email.com
+        region: Київська обл.
+        district: Києво-Святошинський р-н
+        location: м. Вишневе
+        street: вул. Київська
+        house: 2г
+        deliveryTypes: [api]
+        offerRequestType: dynamic
+        scopes:
+          sharing: [internal-passport, foreign-passport]
+
+    Branch:
+      description: Branch (відділення) as returned by the API.
+      allOf:
+        - $ref: '#/components/schemas/BranchCreateRequest'
+        - type: object
+          required: [_id]
+          properties:
+            _id:
+              type: string
+              description: Branch identifier (branch_id).
+              example: 1d441d305adc2bff982fde159f8c91706a68a80b1cff5bd2aebecb43f71f25
+      example:
+        _id: 1d441d305adc2bff982fde159f8c91706a68a80b1cff5bd2aebecb43f71f25
+        name: Назва
+        email: test@email.com
+        region: Київська обл.
+        district: Києво-Святошинський р-н
+        location: м. Вишневе
+        street: вул. Київська
+        house: 2г
+        customFullName: Повна назва запитувача документа
+        customFullAddress: Повна адреса відділення
+        deliveryTypes: [api]
+        offerRequestType: dynamic
+        scopes:
+          sharing:
+            - internal-passport
+            - foreign-passport
+            - taxpayer-card
+            - student-id-card
+            - reference-internally-displaced-person
+
+    BranchList:
+      type: object
+      required: [total, branches]
+      properties:
+        total:
+          type: integer
+          description: Total number of branches in the account.
+          example: 1
+        branches:
+          type: array
+          items:
+            $ref: '#/components/schemas/Branch'
+      example:
+        total: 1
+        branches:
+          - _id: 1d441d305adc2bff982fde159f8c91706a68a80b1cff5bd2aebecb43f71f25
+            name: Назва
+            email: test@email.com
+            region: Київська обл.
+            district: Києво-Святошинський р-н
+            location: м. Вишневе
+            street: вул. Київська
+            house: 2г
+            customFullName: Повна назва запитувача документа
+            customFullAddress: Повна адреса відділення
+            deliveryTypes: [api]
+            offerRequestType: dynamic
+            scopes:
+              sharing:
+                - internal-passport
+                - foreign-passport
+                - taxpayer-card
+                - reference-internally-displaced-person

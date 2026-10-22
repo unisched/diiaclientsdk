@@ -1,0 +1,734 @@
+# Diia — civil status act record metadata (name change, marriage, divorce).
+# Source: diia_docs/diia_metadata.md («Актові записи»)
+components:
+  schemas:
+    ActRecordBaseData:
+      type: object
+      description: Basic system data of the act record.
+      required: [id, number, status, name, documentType, documentTypeCamelCase, ownerType, issuedAt]
+      properties:
+        id:
+          type: string
+          description: System identifier of the document.
+          example: '34516622363'
+        number:
+          type: string
+          description: Act record number.
+          example: '8501'
+        status:
+          type: integer
+          description: Processing status.
+          example: 200
+        name:
+          type: string
+          description: Official record type name.
+          example: Актовий запис про зміну імені
+        listName:
+          type: string
+          description: Full name of the user for display in a list (present in name-change records).
+          example: Дія Надія Володимирівна
+        documentType:
+          type: string
+          description: Document type (kebab-case).
+          example: name-change-act-record
+        documentTypeCamelCase:
+          type: string
+          description: Document type (camelCase).
+          example: nameChangeActRecord
+        ownerType:
+          type: string
+          description: Ownership type of the document.
+          example: owner
+        subtype:
+          type: string
+          description: Event subtype (e.g. `marriage`, `divorce`).
+          example: marriage
+        issuedAt:
+          type: string
+          description: Date of issue (ISO 8601).
+          example: '2024-03-09T22:00:00.000Z'
+
+    ActRecordCertificate:
+      type: object
+      description: Certificate issued on the basis of the act record.
+      required: [status, serie, number, serieNumber, department, issueDate]
+      properties:
+        status:
+          type: string
+          description: Certificate status (`1` — active, `0` — inactive).
+          example: '1'
+        serie:
+          type: string
+          description: Certificate series.
+          example: I-БК
+        number:
+          type: string
+          description: Certificate number.
+          example: '621730'
+        serieNumber:
+          type: string
+          description: Certificate series and number.
+          example: I-БК 621730
+        department:
+          type: string
+          description: Authority that issued the certificate.
+          example: Печерський відділ державної реєстрації актів цивільного стану у місті Києві Центрального міжрегіонального управління Міністерства юстиції (м. Київ)
+        issueDate:
+          type: string
+          description: Date of issue (ISO 8601).
+          example: '2024-03-09T22:00:00.000Z'
+
+    ActAddressDetails:
+      type: object
+      description: Additional address details; the set of filled fields varies between records.
+      properties:
+        state:
+          type: string
+          description: Country of residence.
+          example: Україна
+        region:
+          type: string
+          description: Region of residence.
+          example: Київ
+        district:
+          type: string
+          description: District of residence.
+          example: Подільський
+        street:
+          type: string
+          description: Street of residence.
+          example: Хмельницього Богдана
+        house:
+          type: string
+          description: Building number of residence.
+          example: '10'
+        apartment:
+          type: string
+          description: Apartment number of residence.
+          example: '43'
+
+    ActRecordPartner:
+      type: object
+      description: Data of a partner (spouse) in the act record.
+      required: [lastName, firstName, rnokpp, birthDate, citizenship]
+      properties:
+        gender:
+          type: string
+          description: Gender.
+          example: male
+        oldLastName:
+          type: string
+          description: Last name before the marriage (or before the name change).
+          example: Тестовий
+        lastName:
+          type: string
+          description: Last name after the marriage.
+          example: Тестовий
+        firstName:
+          type: string
+          description: First name.
+          example: Ігор
+        middleName:
+          type: string
+          description: Middle name.
+          example: Тестович
+        rnokpp:
+          type: string
+          description: РНОКПП of the partner.
+          example: '3000406210'
+        birthDate:
+          type: string
+          description: Date of birth (ISO 8601).
+          example: '2000-02-20T22:00:00.000Z'
+        citizenship:
+          type: string
+          description: Citizenship (numeric code).
+          example: '83'
+        familyStatus:
+          type: string
+          description: Family status before the registration.
+          example: у шлюбі не перебував
+        docType:
+          type: string
+          description: Type of the identity document.
+          example: '1'
+        seriesNumber:
+          type: string
+          description: Series and number of the identity document.
+          example: '000006210'
+        docDate:
+          type: string
+          description: Date of issue of the identity document (ISO 8601).
+          example: '2019-07-10T21:00:00.000Z'
+        docOrgName:
+          type: string
+          description: Authority that issued the identity document.
+          example: '1263'
+        birthState:
+          type: string
+          description: Country of birth.
+          example: Україна
+        birthRegion:
+          type: string
+          description: Region of birth.
+          example: Київ
+        birthDistrict:
+          type: string
+          description: District of birth.
+          example: Артемівськ
+        addressDetails:
+          $ref: '#/components/schemas/ActAddressDetails'
+
+    NameChangeActRecord:
+      type: object
+      description: Відомості актового запису про зміну імені (scope `name-change-act-record`).
+      required:
+        - baseData
+        - docStatus
+        - id
+        - docNumber
+        - arRegDate
+        - opDate
+        - arOpName
+        - name
+        - number
+        - date
+        - registrationPlace
+        - certificates
+        - gender
+        - firstName
+        - middleName
+        - oldFirstName
+        - oldMiddleName
+        - rnokpp
+        - citizenship
+        - addressDetails
+        - fileName
+      properties:
+        baseData:
+          $ref: '#/components/schemas/ActRecordBaseData'
+        docStatus:
+          type: integer
+          description: Document delivery status (HTTP-like).
+          example: 200
+        id:
+          type: string
+          description: Unique document identifier.
+          example: '34516622363'
+        docNumber:
+          type: string
+          description: Document number.
+          example: '8501'
+        arRegDate:
+          type: string
+          description: Date and time of act registration (ISO 8601).
+          example: '2024-03-10T14:52:37'
+        opDate:
+          type: string
+          description: Date and time of the operation.
+          example: '2024-03-10T14:52:37'
+        arOpName:
+          type: string
+          description: Operation code.
+          example: '1'
+        name:
+          type: string
+          description: Document name including number and date («№number від date»).
+          example: №8501 від 10.03.2024
+        number:
+          type: string
+          description: Document number.
+          example: '8501'
+        date:
+          type: string
+          description: Date of issue (ISO 8601).
+          example: '2024-03-09T22:00:00.000Z'
+        registrationPlace:
+          type: string
+          description: Place of act registration.
+          example: Печерський відділ державної реєстрації актів цивільного стану у місті Києві Центрального міжрегіонального управління Міністерства юстиції (м. Київ)
+        isRestore:
+          type: string
+          description: Whether the document is restored (`0` — not restored, `1` — restored).
+          example: '0'
+        arVerificationSt:
+          type: string
+          description: Document verification status (`1` — verified, `0` — not verified).
+          example: '1'
+        numberLink:
+          type: string
+          description: Link number of the related document.
+          example: '11'
+        dateLink:
+          type: string
+          description: Date of the related document.
+          example: '06.02.1997'
+        composeOrgLink:
+          type: string
+          description: Authority that created the related document.
+          example: виконавчий комітет Зеленогайської сільської ради Васильківського району Дніпропетровської області
+        certificates:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActRecordCertificate'
+        gender:
+          type: string
+          description: Gender (`male` / `female` in the guide samples).
+          example: male
+        firstName:
+          type: string
+          description: First name after the change.
+          example: Надія
+        lastName:
+          type: string
+          description: Last name after the change.
+          example: Дія
+        middleName:
+          type: string
+          description: Middle name after the change.
+          example: Володимирівна
+        oldFirstName:
+          type: string
+          description: First name before the change.
+          example: Оксана
+        oldLastName:
+          type: string
+          description: Last name before the change.
+          example: Оксанова
+        oldMiddleName:
+          type: string
+          description: Middle name before the change.
+          example: Степанівна
+        rnokpp:
+          type: string
+          description: РНОКПП of the person.
+          example: '1234567001'
+        birthDate:
+          type: string
+          description: Date of birth (ISO 8601).
+          example: '1997-01-16T22:00:00.000Z'
+        citizenship:
+          type: string
+          description: Citizenship (numeric code; `84` — Ukraine).
+          example: '84'
+        addressDetails:
+          $ref: '#/components/schemas/ActAddressDetails'
+        fileName:
+          type: string
+          description: Name of the signed and encrypted PDF file delivered to the partner endpoint.
+          example: name-change-act-record-ac012cc2-de28-4d82-9ac4-de43b0fe77ba-12.03.2026, 15:56:44-1.pdf.p7s.p7e
+      example:
+        baseData:
+          id: '34516622363'
+          number: '8501'
+          status: 200
+          name: Актовий запис про зміну імені
+          listName: Дія Надія Володимирівна
+          documentType: name-change-act-record
+          documentTypeCamelCase: nameChangeActRecord
+          ownerType: owner
+          issuedAt: '2024-03-09T22:00:00.000Z'
+        docStatus: 200
+        id: '34516622363'
+        docNumber: '8501'
+        arRegDate: '2024-03-10T14:52:37'
+        opDate: '2024-03-10T14:52:37'
+        arOpName: '1'
+        name: №8501 від 10.03.2024
+        number: '8501'
+        date: '2024-03-09T22:00:00.000Z'
+        registrationPlace: Печерський відділ державної реєстрації актів цивільного стану у місті Києві Центрального міжрегіонального управління Міністерства юстиції (м. Київ)
+        isRestore: '0'
+        arVerificationSt: '1'
+        numberLink: '11'
+        dateLink: '06.02.1997'
+        composeOrgLink: виконавчий комітет Зеленогайської сільської ради Васильківського району Дніпропетровської області
+        certificates:
+          - status: '1'
+            serie: I-БК
+            number: '621730'
+            serieNumber: I-БК 621730
+            department: Печерський відділ державної реєстрації актів цивільного стану у місті Києві Центрального міжрегіонального управління Міністерства юстиції (м. Київ)
+            issueDate: '2024-03-09T22:00:00.000Z'
+        gender: male
+        firstName: Надія
+        lastName: Дія
+        middleName: Володимирівна
+        oldFirstName: Оксана
+        oldLastName: Оксанова
+        oldMiddleName: Степанівна
+        rnokpp: '1234567001'
+        birthDate: '1997-01-16T22:00:00.000Z'
+        citizenship: '84'
+        addressDetails:
+          state: Україна
+          region: Київ
+          district: Подільський
+          street: Хмельницього Богдана
+          house: '10'
+        fileName: name-change-act-record-ac012cc2-de28-4d82-9ac4-de43b0fe77ba-12.03.2026, 15:56:44-1.pdf.p7s.p7e
+
+    MarriageActRecord:
+      type: object
+      description: Відомості актового запису про укладання шлюбу (scope `marriage-act-record`).
+      required:
+        - baseData
+        - docStatus
+        - id
+        - docNumber
+        - subtype
+        - arRegDate
+        - opDate
+        - arOpName
+        - name
+        - number
+        - date
+        - registrationPlace
+        - certificates
+        - partnerFirst
+        - partnerSecond
+        - fileName
+      properties:
+        baseData:
+          $ref: '#/components/schemas/ActRecordBaseData'
+        docStatus:
+          type: integer
+          description: Document delivery status (duplicates `baseData.status`).
+          example: 200
+        id:
+          type: string
+          description: System identifier of the act record.
+          example: '3018126737'
+        docNumber:
+          type: string
+          description: Act record number.
+          example: '68555'
+        subtype:
+          type: string
+          description: Act subtype.
+          example: marriage
+        arRegDate:
+          type: string
+          description: Date and time of act registration (ISO 8601).
+          example: '2024-07-11T12:00:00'
+        opDate:
+          type: string
+          description: Date and time of the operation.
+          example: '2024-07-11T12:00:00'
+        arOpName:
+          type: string
+          description: Operation code.
+          example: '1'
+        name:
+          type: string
+          description: Formatted document name.
+          example: №68555 від 11.07.2024
+        number:
+          type: string
+          description: Document number.
+          example: '68555'
+        date:
+          type: string
+          description: Date of issue (ISO 8601).
+          example: '2024-07-10T21:00:00.000Z'
+        registrationPlace:
+          type: string
+          description: Civil registry office that registered the marriage.
+          example: Печерський відділ державної реєстрації актів цивільного стану у місті Києві Центрального міжрегіонального управління Міністерства юстиції (м. Київ)
+        isRestore:
+          type: string
+          description: Whether the document is restored (`0` — not restored, `1` — restored).
+          example: '0'
+        arVerificationSt:
+          type: string
+          description: Document verification status (`1` — verified, `0` — not verified).
+          example: '1'
+        certificates:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActRecordCertificate'
+        partnerFirst:
+          allOf:
+            - $ref: '#/components/schemas/ActRecordPartner'
+            - description: Data of the first partner.
+        partnerSecond:
+          allOf:
+            - $ref: '#/components/schemas/ActRecordPartner'
+            - description: Data of the second partner.
+        fileName:
+          type: string
+          description: Name of the signed and encrypted PDF file delivered to the partner endpoint.
+          example: marriage-act-record-84f5868f-3bce-41df-bf5b-d045b2c1f8e0-12.03.2026, 16:51:15-1.pdf.p7s.p7e
+      example:
+        baseData:
+          id: '3018126737'
+          number: '68555'
+          status: 200
+          name: Актовий запис про шлюб
+          documentType: marriage-act-record
+          documentTypeCamelCase: marriageActRecord
+          ownerType: owner
+          subtype: marriage
+          issuedAt: '2024-07-10T21:00:00.000Z'
+        docStatus: 200
+        id: '3018126737'
+        docNumber: '68555'
+        subtype: marriage
+        arRegDate: '2024-07-11T12:00:00'
+        opDate: '2024-07-11T12:00:00'
+        arOpName: '1'
+        name: №68555 від 11.07.2024
+        number: '68555'
+        date: '2024-07-10T21:00:00.000Z'
+        registrationPlace: Печерський відділ державної реєстрації актів цивільного стану у місті Києві Центрального міжрегіонального управління Міністерства юстиції (м. Київ)
+        isRestore: '0'
+        arVerificationSt: '1'
+        certificates:
+          - status: '1'
+            serie: НЦ
+            number: '418102'
+            serieNumber: НЦ418102
+            department: '1263'
+            issueDate: '2024-07-10T21:00:00.000Z'
+          - status: '1'
+            serie: НЦ
+            number: '418103'
+            serieNumber: НЦ418103
+            department: '1263'
+            issueDate: '2024-07-10T21:00:00.000Z'
+        partnerFirst:
+          gender: male
+          oldLastName: Тестовий
+          lastName: Тестовий
+          firstName: Ігор
+          middleName: Тестович
+          rnokpp: '3000406210'
+          birthDate: '2000-02-20T22:00:00.000Z'
+          citizenship: '83'
+          familyStatus: у шлюбі не перебував
+          docType: '1'
+          seriesNumber: '000006210'
+          docDate: '2019-07-10T21:00:00.000Z'
+          docOrgName: '1263'
+          birthState: Україна
+          birthRegion: Київ
+          addressDetails:
+            state: Україна
+        partnerSecond:
+          gender: female
+          oldLastName: Стара
+          lastName: Тестова
+          firstName: Надія
+          middleName: Володимирівна
+          rnokpp: '1234567001'
+          birthDate: '2000-07-15T21:00:00.000Z'
+          citizenship: '84'
+          familyStatus: у шлюбі не перебувала
+          docType: '1'
+          seriesNumber: '000001750'
+          docDate: '2021-07-15T21:00:00.000Z'
+          docOrgName: '1263'
+          birthState: Україна
+          birthRegion: Київ
+          addressDetails:
+            state: Україна
+        fileName: marriage-act-record-84f5868f-3bce-41df-bf5b-d045b2c1f8e0-12.03.2026, 16:51:15-1.pdf.p7s.p7e
+
+    DivorceActRecord:
+      type: object
+      description: Відомості актового запису про розірвання шлюбу (scope `divorce-act-record`).
+      required:
+        - baseData
+        - docStatus
+        - id
+        - docNumber
+        - subtype
+        - arRegDate
+        - opDate
+        - arOpName
+        - name
+        - number
+        - date
+        - registrationPlace
+        - dateLink
+        - composeOrgLink
+        - certificates
+        - reasonDivorce
+        - partnerFirst
+        - partnerSecond
+        - fileName
+      properties:
+        baseData:
+          $ref: '#/components/schemas/ActRecordBaseData'
+        docStatus:
+          type: integer
+          description: Document delivery status.
+          example: 200
+        id:
+          type: string
+          description: Unique document identifier.
+          example: '43413866493'
+        docNumber:
+          type: string
+          description: Document number.
+          example: '5808'
+        subtype:
+          type: string
+          description: Document subtype (e.g. `divorce`, `marriage`).
+          example: divorce
+        arRegDate:
+          type: string
+          description: Date and time of act registration (ISO 8601).
+          example: '2024-06-10T17:55:14'
+        opDate:
+          type: string
+          description: Date and time of the operation.
+          example: '2024-06-10T17:55:14'
+        arOpName:
+          type: string
+          description: Operation code.
+          example: '1'
+        name:
+          type: string
+          description: Document name («№number від date»).
+          example: №5808 від 10.06.2024
+        number:
+          type: string
+          description: Document number.
+          example: '5808'
+        date:
+          type: string
+          description: Date of issue (ISO 8601).
+          example: '2024-06-09T21:00:00.000Z'
+        registrationPlace:
+          type: string
+          description: Civil registry office that registered the divorce.
+          example: Печерський відділ державної реєстрації актів цивільного стану у місті Києві Центрального міжрегіонального управління Міністерства юстиції (м. Київ)
+        isRestore:
+          type: string
+          description: Whether the document is restored (`0` — not restored, `1` — restored).
+          example: '0'
+        arVerificationSt:
+          type: string
+          description: Document verification status (`1` — verified, `0` — not verified).
+          example: '1'
+        numberLink:
+          type: string
+          description: Number of the document in the related registry.
+          example: '46'
+        dateLink:
+          type: string
+          description: Date of registration of the related record.
+          example: '10.06.2024'
+        composeOrgLink:
+          type: string
+          description: Authority that composed the record.
+          example: Печерський відділ державної реєстрації актів цивільного стану у місті Києві Центрального міжрегіонального управління Міністерства юстиції (м. Київ)
+        certificates:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActRecordCertificate'
+        reasonDivorce:
+          type: string
+          description: Reason for the divorce.
+          example: заява
+        partnerFirst:
+          allOf:
+            - $ref: '#/components/schemas/ActRecordPartner'
+            - description: Data of the first partner.
+        partnerSecond:
+          allOf:
+            - $ref: '#/components/schemas/ActRecordPartner'
+            - description: Data of the second partner.
+        fileName:
+          type: string
+          description: Name of the signed and encrypted PDF file delivered to the partner endpoint.
+          example: divorce-act-record-5d387e63-5c06-4598-9c11-9c6a2717801f-12.03.2026, 16:53:34-1.pdf.p7s.p7e
+      example:
+        baseData:
+          id: '43413866493'
+          number: '5808'
+          status: 200
+          name: Актовий запис про розірвання шлюбу
+          documentType: divorce-act-record
+          documentTypeCamelCase: divorceActRecord
+          ownerType: owner
+          subtype: divorce
+          issuedAt: '2024-06-09T21:00:00.000Z'
+        docStatus: 200
+        id: '43413866493'
+        docNumber: '5808'
+        subtype: divorce
+        arRegDate: '2024-06-10T17:55:14'
+        opDate: '2024-06-10T17:55:14'
+        arOpName: '1'
+        name: №5808 від 10.06.2024
+        number: '5808'
+        date: '2024-06-09T21:00:00.000Z'
+        registrationPlace: Печерський відділ державної реєстрації актів цивільного стану у місті Києві Центрального міжрегіонального управління Міністерства юстиції (м. Київ)
+        isRestore: '0'
+        arVerificationSt: '1'
+        numberLink: '46'
+        dateLink: '10.06.2024'
+        composeOrgLink: Печерський відділ державної реєстрації актів цивільного стану у місті Києві Центрального міжрегіонального управління Міністерства юстиції (м. Київ)
+        certificates:
+          - status: '1'
+            serie: II-СГ
+            number: '725574'
+            serieNumber: II-СГ725574
+            department: Печерський відділ державної реєстрації актів цивільного стану у місті Києві Центрального міжрегіонального управління Міністерства юстиції (м. Київ)
+            issueDate: '2024-06-09T21:00:00.000Z'
+          - status: '1'
+            serie: II-СГ
+            number: '412999'
+            serieNumber: II-СГ412999
+            department: Печерський відділ державної реєстрації актів цивільного стану у місті Києві Центрального міжрегіонального управління Міністерства юстиції (м. Київ)
+            issueDate: '2024-06-09T21:00:00.000Z'
+        reasonDivorce: заява
+        partnerFirst:
+          gender: male
+          oldLastName: Пулюй
+          lastName: Плюй
+          firstName: Андрій
+          middleName: Антонович
+          rnokpp: '1234569978'
+          birthDate: '1994-09-09T21:00:00.000Z'
+          citizenship: '83'
+          docType: '1'
+          seriesNumber: '000069978'
+          docDate: '2021-09-09T21:00:00.000Z'
+          docOrgName: '1263'
+          birthState: Україна
+          birthRegion: Київ
+          birthDistrict: Подільський
+          addressDetails:
+            state: Україна
+            region: Київ
+            district: Дніпровський
+            street: Хмельницького Богдана
+            house: '10'
+            apartment: '43'
+        partnerSecond:
+          gender: female
+          oldLastName: Дія
+          lastName: Дія
+          firstName: Надія
+          middleName: Володимирівна
+          rnokpp: '1234567001'
+          birthDate: '1997-01-16T22:00:00.000Z'
+          citizenship: '84'
+          docType: '1'
+          seriesNumber: '000067001'
+          docDate: '2021-09-09T21:00:00.000Z'
+          docOrgName: '1263'
+          birthState: Україна
+          birthRegion: Київ
+          birthDistrict: Артемівськ
+          addressDetails:
+            state: Україна
+            region: Київська
+            district: Подільський
+            street: Хмельницького Богдана
+            house: '10'
+            apartment: '43'
+        fileName: divorce-act-record-5d387e63-5c06-4598-9c11-9c6a2717801f-12.03.2026, 16:53:34-1.pdf.p7s.p7e

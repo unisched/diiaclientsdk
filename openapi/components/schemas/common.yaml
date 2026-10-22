@@ -1,0 +1,242 @@
+# Diia REST API — shared schemas and enums.
+# Sources: diia_docs/diia_sharing.md, diia_docs/diia_sign.md
+components:
+  schemas:
+    SessionToken:
+      type: object
+      required: [token]
+      properties:
+        token:
+          type: string
+          description: >-
+            Acquirer session token. Valid for 2 hours from the moment it is issued. Pass it as
+            `Authorization: Bearer {session_token}` in every other API call. Several session
+            tokens may be obtained and used in parallel (e.g. when the partner service runs on
+            multiple nodes); do not request a new token while the current one is still valid.
+          example: bXi124jbs3cFas...Sjf
+
+    IdResponse:
+      type: object
+      required: [_id]
+      description: Identifier of the created or updated entity.
+      properties:
+        _id:
+          type: string
+          description: Entity identifier — `branch_id` for branches, `offer_id` for offers.
+          example: 5e8decccb92d8d73ad838c5d
+
+    SuccessResponse:
+      type: object
+      required: [success]
+      description: >-
+        Response the Diia app expects from the partner endpoint on success. The full expected
+        shape is `{"success": <boolean>, "error": <string>}` — on success only `success: true`
+        is normally returned (within 30 seconds, HTTP 200).
+      properties:
+        success:
+          type: boolean
+          description: Operation result flag.
+        error:
+          type: string
+          description: Optional human-readable error description (the app expects the field in the contract; omit it on success).
+      example:
+        success: true
+
+    ErrorResponse:
+      type: object
+      required: [success]
+      description: >-
+        Response the Diia app expects from the partner endpoint on failure — a non-2xx code
+        (the guide uses `404`) with `{"success": false}` so the app shows the failure screen.
+      properties:
+        success:
+          type: boolean
+        error:
+          type: string
+          description: Optional human-readable error description.
+      example:
+        success: false
+
+    DeeplinkResponse:
+      type: object
+      required: [deeplink]
+      properties:
+        deeplink:
+          type: string
+          format: uri
+          description: >-
+            One-time deeplink that opens the request in the Diia mobile app. Valid for 3 minutes
+            from creation. Must be opened by the Diia app of the matching environment (test
+            deeplinks only open in the test app and vice versa).
+          example: https://diia.app/acquirers/offer-request/dynamic/f6d1dc4c-8043-4c25-b85f-bd5663831bc3
+
+    RequestStatus:
+      type: string
+      description: |-
+        Sharing / Diia.Sign request status:
+        * `initialized` — (online only) the deeplink was issued, the user has not opened it yet, the deeplink is not expired;
+        * `processing` — the request reached the app: for barcode sharing the push was sent to the user; for online scenarios the user opened the deeplink; or the user dropped out without completing;
+        * `done` — data successfully delivered to the partner endpoint and the partner replied `200 {"success": true}`;
+        * `refuse` — the user declined, the code/deeplink was reused, or delivery to the partner endpoint failed;
+        * `notUsed` — (online only) the user did not open the deeplink within 3 minutes.
+      enum:
+        - initialized
+        - processing
+        - done
+        - refuse
+        - notUsed
+      example: done
+
+    RequestStatusResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          $ref: '#/components/schemas/RequestStatus'
+      example:
+        status: done
+
+    SignAlgo:
+      type: string
+      description: |-
+        Signature algorithm for signed copies of digital documents and hashed-file signing:
+        * `DSTU` (default) — hashing with `HASH_ALGO_GOST34311`;
+        * `ECDSA` — hashing with `SHA256`;
+        * `DSTU4145-DSTU7564` — hashing with `HASH_ALGO_DSTU7564_256`.
+        For `DSTU` and `DSTU4145-DSTU7564` a base64 hash string of 44 characters (32 bytes after
+        decoding) is required; generation of such hashes is provided by the IIT library. With
+        `DSTU` and `DSTU4145-DSTU7564` the decrypted data is in Cyrillic, with `ECDSA` — in Latin.
+        Available from new versions of the Diia app.
+      enum: [DSTU, ECDSA, DSTU4145-DSTU7564]
+      default: DSTU
+      example: DSTU4145-DSTU7564
+
+    DocumentType:
+      type: string
+      description: >-
+        Sharing scope key of a document type. Used in branch/offer `scopes.sharing` and in the
+        `documentTypes` array of shared metadata.
+      enum:
+        - internal-passport
+        - foreign-passport
+        - taxpayer-card
+        - reference-internally-displaced-person
+        - user-birth-record
+        - birth-certificate
+        - child-taxpayer-card
+        - driver-license
+        - vehicle-license
+        - student-id-card
+        - residence-permit-permanent
+        - residence-permit-temporary
+        - pension-card
+        - education-document
+        - veteran-certificate
+        - name-change-act-record
+        - marriage-act-record
+        - divorce-act-record
+        - income-report
+        - ok5
+        - ok7
+
+    DiiaIdScope:
+      type: string
+      description: >-
+        Diia.Sign capability of a branch/offer: `hashedFilesSigning` — signing of file hashes
+        initiated in a third-party system, `auth` — user authorization. Only one value can be
+        provided per branch (see the `403` error «Only one scope value could be provided for the
+        diiaId scope»).
+      enum: [hashedFilesSigning, auth]
+
+    DeliveryType:
+      type: string
+      description: Delivery type of the branch; must be `api` for API integration.
+      enum: [api]
+
+    OfferRequestType:
+      type: string
+      description: Offer request type of the branch; must be `dynamic` for API integration.
+      enum: [dynamic]
+
+    RequestId:
+      type: string
+      minLength: 10
+      maxLength: 255
+      description: >-
+        Partner-generated request identifier used to track the request. Returned in the
+        `X-Document-Request-Trace-Id` header of the callback package. uuid v4 is the reference
+        format, but any string between 10 and 255 characters is accepted. For the Diia.Sign
+        authorization scenario the guide (§4.2.3.4) requires passing a base64-encoded
+        DSTU 7564:2014 hash of the uuid v4 requestId here; the same value is returned in the
+        `X-Document-Request-Trace-Id` header.
+      example: a1234567-0123-1234-1234-123412341234
+
+    Barcode:
+      type: string
+      pattern: '^\d{13}$'
+      description: >-
+        13-digit Code128 barcode generated when the user flips a document in the Diia app
+        (shown in the app and read by the operator). Valid for 3 minutes and single-use.
+      example: '3535267635434'
+
+    ApiError:
+      type: object
+      required: [name, message, code, data]
+      description: Error envelope returned by the Diia API.
+      properties:
+        name:
+          type: string
+          description: >-
+            Error name: `Error`, `UnauthorizedError`, `ModelNotFoundError`, `NotFoundError`,
+            `ValidationError`, etc.
+          example: Error
+        message:
+          type: string
+          description: Human-readable error message.
+          example: Not authorized
+        code:
+          type: integer
+          description: Error code (HTTP-like).
+          example: 401
+        type:
+          type: string
+          description: >-
+            Machine-readable error type; present in some errors (e.g. `NOT_FOUND`,
+            `VALIDATION_ERROR`).
+          example: VALIDATION_ERROR
+        data:
+          description: >-
+            Additional error payload. Depends on the error kind: an empty object `{}`, `null`,
+            an object with details (e.g. `{"barcode": "1111111111111"}` or
+            `{"now": "...", "expirationDate": "..."}`), or an array of field errors
+            (see `ValidationFieldError`).
+      example:
+        name: Error
+        message: Not authorized
+        code: 401
+        data: {}
+
+    ValidationFieldError:
+      type: object
+      required: [type, message, field]
+      description: Single field error inside a `422 Parameter validation error` response.
+      properties:
+        type:
+          type: string
+          description: Validation rule that failed.
+          enum: [required, stringMin, stringMax]
+          example: stringMin
+        message:
+          type: string
+          description: Human-readable description of the failed rule.
+          example: "The 'params.requestId' field length must be greater than or equal to 10 characters long."
+        field:
+          type: string
+          description: Path of the invalid field.
+          example: params.requestId
+        expected:
+          description: Expected value for range rules (e.g. the minimum length).
+          example: 10
+        actual:
+          description: Actual value that failed validation.
+          example: 3

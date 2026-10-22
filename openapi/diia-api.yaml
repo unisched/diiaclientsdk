@@ -1,0 +1,85 @@
+# Diia REST API — Sharing & Diia.Sign (OpenAPI 3.0.3 entry point)
+# Sources: diia_docs/diia_sharing.md, diia_docs/diia_sign.md
+openapi: 3.0.3
+info:
+  title: Diia REST API — Sharing & Diia.Sign
+  version: 2026-09-03
+  description: |-
+    OpenAPI specification of the Diia (ДП «Дія») REST API covering:
+
+    * **Sharing** — branches, offers, offline (barcode) and online (deeplink) document sharing,
+      request statuses;
+    * **Diia.Sign** — signing of file hashes (`hashedFilesSigning`) and authorization (`auth`),
+      initiated via deeplinks.
+
+    The encrypted package that the Diia mobile app delivers to the partner is described in a
+    separate specification — `diia-partner-receiver.yaml` (including the decrypted metadata
+    structure of every document type).
+
+    Environments (all individual acquirer/branch data differs between them):
+
+    * `https://api2.diia.gov.ua` — production (real Diia app and documents);
+    * `https://api2s.diia.gov.ua` — sandbox (test Diia app with the mock user «Дія Надія»).
+
+    Authorization is not OAuth 2.0: the partner exchanges its static `acquirer_token` for a
+    session token (`getSessionToken`) and passes it as a bearer token in every other call.
+
+    Source documents: `diia_docs/diia_sharing.md` (updated 05.08.26) and
+    `diia_docs/diia_sign.md` (updated 03.09.26).
+servers:
+  - url: https://api2.diia.gov.ua
+    description: Production — real users and documents.
+  - url: https://api2s.diia.gov.ua
+    description: Sandbox (test environment) — test Diia app with the mock user «Дія Надія».
+security:
+  - bearerAuth: []
+tags:
+  - name: Auth
+    description: Acquirer authentication — session tokens.
+  - name: Branches
+    description: Branches (відділення) of the partner organization.
+  - name: Offers
+    description: Offers (пропозиції) created on branches — reusable document/signing request templates.
+  - name: Sharing
+    description: Document sharing requests (offline barcode and online deeplink scenarios).
+  - name: DiiaSign
+    description: Diia.Sign scenarios — signing of file hashes and authorization via deeplink.
+  - name: Status
+    description: Sharing / signing request statuses.
+paths:
+  /api/v1/auth/acquirer/{acquirer_token}:
+    $ref: 'paths/auth.yaml#/SessionToken'
+  /api/v2/acquirers/branch:
+    $ref: 'paths/branches.yaml#/BranchCreate'
+  /api/v2/acquirers/branches:
+    $ref: 'paths/branches.yaml#/BranchList'
+  /api/v2/acquirers/branch/{branchId}:
+    $ref: 'paths/branches.yaml#/BranchItem'
+  /api/v1/acquirers/branch/{branchId}/offer:
+    $ref: 'paths/offers.yaml#/OfferCreate'
+  /api/v1/acquirers/branch/{branchId}/offers:
+    $ref: 'paths/offers.yaml#/OfferList'
+  /api/v1/acquirers/branch/{branchId}/offer/{offerId}:
+    $ref: 'paths/offers.yaml#/OfferDelete'
+  /api/v1/acquirers/document-request:
+    $ref: 'paths/sharing.yaml#/DocumentRequest'
+  /api/v1/acquirers/document-request/status:
+    $ref: 'paths/sharing.yaml#/DocumentRequestStatus'
+  /api/v2/acquirers/branch/{branchId}/offer-request/dynamic:
+    $ref: 'paths/online.yaml#/OfferRequestDynamic'
+  /api/v1/acquirers/offer-request/status:
+    $ref: 'paths/online.yaml#/OfferRequestStatus'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: >-
+        Session token from `getSessionToken` — pass it as
+        `Authorization: Bearer {session_token}`. Valid for 2 hours from issuance.
+    basicAuth:
+      type: http
+      scheme: basic
+      description: >-
+        Basic authentication with the `auth_acquirer_token` that ДП «Дія» provides separately.
+        Used only by `getSessionToken` and only in the test environment.

@@ -1,0 +1,5 @@
+node_modules/
+dist/
+.commandcode/
+erl_crash.dump
+clients/elixir/mix.lock

@@ -1,0 +1,101 @@
+# Diia REST API — reusable parameters.
+# Sources: diia_docs/diia_sharing.md, diia_docs/diia_sign.md
+components:
+  parameters:
+    AcquirerToken:
+      name: acquirer_token
+      in: path
+      required: true
+      description: >-
+        Acquirer token issued to the partner by ДП «Дія» for the specific environment (test and
+        production tokens differ).
+      schema:
+        type: string
+      example: bksoFji5v-test-token
+
+    BranchId:
+      name: branchId
+      in: path
+      required: true
+      description: Branch identifier (branch_id).
+      schema:
+        type: string
+      example: 5e8decccb92d8d73ad838c5d
+
+    OfferId:
+      name: offerId
+      in: path
+      required: true
+      description: Offer identifier (offer_id).
+      schema:
+        type: string
+      example: '1234'
+
+    SkipQuery:
+      name: skip
+      in: query
+      required: false
+      description: How many items to skip in the response (offset).
+      schema:
+        type: integer
+        minimum: 0
+      example: 0
+
+    LimitQuery:
+      name: limit
+      in: query
+      required: false
+      description: How many items to return. No more than 100 items per request is recommended.
+      schema:
+        type: integer
+        minimum: 1
+      example: 100
+
+    BarcodeQuery:
+      name: barcode
+      in: query
+      required: false
+      description: >-
+        Barcode of the sharing request. Provide `barcode` and/or `requestId` — at least one of
+        the two parameters is required.
+      schema:
+        $ref: 'schemas/common.yaml#/components/schemas/Barcode'
+
+    RequestIdQuery:
+      name: requestId
+      in: query
+      required: false
+      description: >-
+        Partner request identifier. Provide `requestId` and/or the barcode/otp — at least one of
+        the two parameters is required.
+      schema:
+        $ref: 'schemas/common.yaml#/components/schemas/RequestId'
+
+    OtpQuery:
+      name: otp
+      in: query
+      required: false
+      description: >-
+        OTP — the last segment of the deeplink returned by `createOfferRequestDynamic`. For
+        deeplink `https://diia.app/acquirers/offer-request/dynamic/38abd418-f786-4a4d-a4d6-24fc842dacfc`
+        the otp is `38abd418-f786-4a4d-a4d6-24fc842dacfc`. Provide `otp` and/or `requestId` — at
+        least one of the two parameters is required.
+      schema:
+        type: string
+        format: uuid
+      example: 38abd418-f786-4a4d-a4d6-24fc842dacfc
+
+    XDocumentRequestTraceId:
+      name: X-Document-Request-Trace-Id
+      in: header
+      required: true
+      description: >-
+        Partner `requestId` of the request that triggered the callback — use it to link the
+        incoming package to the original request and to filter unauthorized calls. For the
+        Diia.Sign authorization scenario this is the base64-encoded hashed requestId that was
+        passed in the request. Depending on the partner stack the header may arrive as
+        `X-Document-Request-Trace-Id`, `X-DOCUMENT-REQUEST-TRACE-ID` or
+        `x-document-request-trace-id`.
+      schema:
+        type: string
+      example: 1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4be5

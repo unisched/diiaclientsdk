@@ -1,0 +1,24 @@
+{
+  "name": "diiaclientsdk",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Diia client SDKs — OpenAPI specifications and tooling for the Diia REST API",
+  "config": {
+    "openapiGeneratorVersion": "7.26.0"
+  },
+  "scripts": {
+    "bundle": "npm run bundle:api && npm run bundle:receiver",
+    "bundle:api": "redocly bundle openapi/diia-api.yaml -o dist/diia-api.bundled.yaml",
+    "bundle:receiver": "redocly bundle openapi/diia-partner-receiver.yaml -o dist/diia-partner-receiver.bundled.yaml",
+    "lint": "redocly lint openapi/diia-api.yaml openapi/diia-partner-receiver.yaml",
+    "preview": "redocly preview-docs openapi/diia-api.yaml",
+    "verify": "npm run lint && npm run bundle",
+    "generate": "node scripts/generate.mjs",
+    "generate:check": "node scripts/generate.mjs --check",
+    "generate:watch": "node scripts/generate.mjs --watch"
+  },
+  "devDependencies": {
+    "@openapitools/openapi-generator-cli": "2.42.0",
+    "@redocly/cli": "2.69.0"
+  }
+}

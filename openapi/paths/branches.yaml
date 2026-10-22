@@ -1,0 +1,110 @@
+# Path items: branches (відділення) API.
+# Sources: diia_docs/diia_sharing.md §2.3, diia_docs/diia_sign.md §3.2
+BranchCreate:
+  post:
+    tags: [Branches]
+    summary: Create a new branch
+    description: |-
+      Creates a branch (відділення) of the partner organization from which document sharing
+      requests are made. Branches are reusable — create the required number of branches once
+      (separately in the test and production environments). Mass creation may be blocked by the
+      service.
+
+      For API integration `deliveryTypes` must be `["api"]` and `offerRequestType` must be
+      `"dynamic"`. Field names are case-sensitive; send data in UTF-8.
+    operationId: createBranch
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/branch.yaml#/components/schemas/BranchCreateRequest'
+    responses:
+      '200':
+        description: Branch created.
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/components/schemas/IdResponse'
+            example:
+              _id: 5e8decccb92d8d73ad838c5d
+      '401':
+        $ref: '../components/responses.yaml#/components/responses/NotAuthorized'
+      '422':
+        $ref: '../components/responses.yaml#/components/responses/BranchValidationError'
+
+BranchList:
+  get:
+    tags: [Branches]
+    summary: Get the list of branches
+    operationId: getBranches
+    parameters:
+      - $ref: '../components/parameters.yaml#/components/parameters/SkipQuery'
+      - $ref: '../components/parameters.yaml#/components/parameters/LimitQuery'
+    responses:
+      '200':
+        description: List of branches in the acquirer account.
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/branch.yaml#/components/schemas/BranchList'
+      '401':
+        $ref: '../components/responses.yaml#/components/responses/NotAuthorized'
+
+BranchItem:
+  parameters:
+    - $ref: '../components/parameters.yaml#/components/parameters/BranchId'
+  get:
+    tags: [Branches]
+    summary: Get a branch by identifier
+    operationId: getBranch
+    responses:
+      '200':
+        description: Branch JSON.
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/branch.yaml#/components/schemas/Branch'
+      '401':
+        $ref: '../components/responses.yaml#/components/responses/NotAuthorized'
+      '404':
+        $ref: '../components/responses.yaml#/components/responses/BranchNotFound'
+  put:
+    tags: [Branches]
+    summary: Update an existing branch
+    description: |-
+      Updates the branch. **Important:** delete the offers created on the branch before
+      editing it. Field names are case-sensitive; send data in UTF-8.
+    operationId: updateBranch
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/branch.yaml#/components/schemas/BranchCreateRequest'
+    responses:
+      '200':
+        description: Branch updated.
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/components/schemas/IdResponse'
+            example:
+              _id: 5e8decccb92d8d73ad838c5d
+      '401':
+        $ref: '../components/responses.yaml#/components/responses/NotAuthorized'
+      '404':
+        $ref: '../components/responses.yaml#/components/responses/BranchNotFound'
+      '422':
+        $ref: '../components/responses.yaml#/components/responses/BranchValidationError'
+  delete:
+    tags: [Branches]
+    summary: Delete an existing branch
+    operationId: deleteBranch
+    responses:
+      '204':
+        description: Branch deleted.
+      '401':
+        $ref: '../components/responses.yaml#/components/responses/NotAuthorized'
+      '404':
+        $ref: '../components/responses.yaml#/components/responses/BranchNotFound'

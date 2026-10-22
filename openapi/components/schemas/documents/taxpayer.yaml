@@ -1,0 +1,172 @@
+# Diia — taxpayer card document metadata.
+# Source: diia_docs/diia_metadata.md («РНОКПП (ІПН)», «РНОКПП Дитини»)
+components:
+  schemas:
+    TaxpayerCard:
+      type: object
+      description: РНОКПП (ІПН) — taxpayer card (scope `taxpayer-card`).
+      required: [creationDate, docNumber, lastNameUA, firstNameUA, middleNameUA, birthday, fileName]
+      properties:
+        creationDate:
+          type: string
+          description: Date of the last successful verification of the РНОКПП in the tax registry.
+          example: '27.01.2025'
+        docNumber:
+          type: string
+          description: >-
+            The РНОКПП (ІПН) itself. The same number is also returned in `taxpayerNumber` of the
+            ID-card and foreign passport metadata.
+          example: '3609606060'
+        lastNameUA:
+          type: string
+          description: Last name (Ukrainian).
+          example: Бондаренко
+        firstNameUA:
+          type: string
+          description: First name (Ukrainian).
+          example: Богдан
+        middleNameUA:
+          type: string
+          description: Middle name (Ukrainian).
+          example: Петрович
+        birthday:
+          type: string
+          description: Date of birth, DD.MM.YYYY.
+          example: '10.10.1998'
+        fileName:
+          type: string
+          description: Name of the signed and encrypted PDF file delivered to the partner endpoint.
+          example: taxpayer-card-29bf59e2-04b9-48b7-b344-d764b113fc8f-27.01.2025, 16:17:06-1.pdf.p7s.p7e
+      example:
+        creationDate: '27.01.2025'
+        docNumber: '3609606060'
+        lastNameUA: Бондаренко
+        firstNameUA: Богдан
+        middleNameUA: Петрович
+        birthday: '10.10.1998'
+        fileName: taxpayer-card-29bf59e2-04b9-48b7-b344-d764b113fc8f-27.01.2025, 16:17:06-1.pdf.p7s.p7e
+
+    ChildTaxpayerCardBaseData:
+      type: object
+      description: Basic system data of the document.
+      required: [id, number, status, name, listName, listDescription, documentType, documentTypeCamelCase, ownerType]
+      properties:
+        id:
+          type: string
+          description: Unique internal identifier of the document.
+          example: 6087da89de59e44cbc8fad8688d3ae2679afaca1e5670bb2b49c07186439ecf13d56930dd1ab84e4a544d0505e335e18e96706d7809e1bb5a1b752a0936b6450
+        number:
+          type: string
+          description: Document number (РНОКПП).
+          example: '6667090562'
+        status:
+          type: integer
+          description: Document processing status.
+          example: 200
+        name:
+          type: string
+          description: Official document type name (Ukrainian).
+          example: Картка платника податків дитини
+        listName:
+          type: string
+          description: Full name of the person the document is issued to (for display).
+          example: Михальченко Андрій Віталійович
+        listDescription:
+          type: string
+          description: Short document description (for display in a list).
+          example: "РНОКПП: 6667090562\nДата народження: 10.01.2017"
+        documentType:
+          type: string
+          description: System document type (kebab-case).
+          example: child-taxpayer-card
+        documentTypeCamelCase:
+          type: string
+          description: System document type (camelCase).
+          example: childTaxpayerCard
+        ownerType:
+          type: string
+          description: Ownership type of the document.
+          example: owner
+
+    ChildTaxpayerCardChild:
+      type: object
+      description: Personal data of the child.
+      required: [id, lastName, firstName, middleName, birthday, itn, identifier]
+      properties:
+        id:
+          type: string
+          description: Identifier of the child record.
+          example: 4fcb0acaa86d0203e3182b5fb9ffd08ad9588a5575959abc0eda1db805fa2a76e856ec892e2794aee86c82765e5073e5baed1665f9e817eeebbd712b87e06d4d
+        lastName:
+          type: string
+          description: Last name of the child.
+          example: Михальченко
+        firstName:
+          type: string
+          description: First name of the child.
+          example: Андрій
+        middleName:
+          type: string
+          description: Middle name of the child.
+          example: Віталійович
+        birthday:
+          type: string
+          description: Date of birth, DD.MM.YYYY.
+          example: '10.01.2017'
+        itn:
+          type: string
+          description: РНОКПП (ІПН) of the child.
+          example: '6667090562'
+        identifier:
+          type: string
+          description: Technical identifier of the child profile.
+          example: 6087da89de59e44cbc8fad8688d3ae2679afaca1e5670bb2b49c07186439ecf13d56930dd1ab84e4a544d0505e335e18e96706d7809e1bb5a1b752a0936b6450
+
+    ChildTaxpayerCard:
+      type: object
+      description: РНОКПП дитини — child taxpayer card (scope `child-taxpayer-card`).
+      required: [baseData, child, id, docNumber, docStatus, fileName]
+      properties:
+        baseData:
+          $ref: '#/components/schemas/ChildTaxpayerCardBaseData'
+        child:
+          $ref: '#/components/schemas/ChildTaxpayerCardChild'
+        id:
+          type: string
+          description: Main document identifier at the object level.
+          example: 6087da89de59e44cbc8fad8688d3ae2679afaca1e5670bb2b49c07186439ecf13d56930dd1ab84e4a544d0505e335e18e96706d7809e1bb5a1b752a0936b6450
+        docNumber:
+          type: string
+          description: Document number.
+          example: '6667090562'
+        docStatus:
+          type: integer
+          description: Document status (200 — success).
+          example: 200
+        fileName:
+          type: string
+          description: Name of the signed and encrypted PDF file delivered to the partner endpoint.
+          example: child-taxpayer-card-6a0a23d5-1cf5-4638-8691-1a54205a66d2-29.05.2026, 15:53:49-1.p7s.p7e
+      example:
+        baseData:
+          id: 6087da89de59e44cbc8fad8688d3ae2679afaca1e5670bb2b49c07186439ecf13d56930dd1ab84e4a544d0505e335e18e96706d7809e1bb5a1b752a0936b6450
+          number: '6667090562'
+          status: 200
+          name: Картка платника податків дитини
+          listName: Михальченко Андрій Віталійович
+          listDescription: "РНОКПП: 6667090562\nДата народження: 10.01.2017"
+          documentType: child-taxpayer-card
+          documentTypeCamelCase: childTaxpayerCard
+          ownerType: owner
+        child:
+          id: 4fcb0acaa86d0203e3182b5fb9ffd08ad9588a5575959abc0eda1db805fa2a76e856ec892e2794aee86c82765e5073e5baed1665f9e817eeebbd712b87e06d4d
+          lastName: Михальченко
+          firstName: Андрій
+          middleName: Віталійович
+          birthday: '10.01.2017'
+          itn: '6667090562'
+          identifier: 6087da89de59e44cbc8fad8688d3ae2679afaca1e5670bb2b49c07186439ecf13d56930dd1ab84e4a544d0505e335e18e96706d7809e1bb5a1b752a0936b6450
+        id: 6087da89de59e44cbc8fad8688d3ae2679afaca1e5670bb2b49c07186439ecf13d56930dd1ab84e4a544d0505e335e18e96706d7809e1bb5a1b752a0936b6450
+        docNumber: '6667090562'
+        docStatus: 200
+        fileName: child-taxpayer-card-6a0a23d5-1cf5-4638-8691-1a54205a66d2-29.05.2026, 15:53:49-1.p7s.p7e

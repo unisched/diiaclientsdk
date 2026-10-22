@@ -1,0 +1,95 @@
+# Diia REST API — offer (пропозиція) schemas.
+# Sources: diia_docs/diia_sharing.md §2.5, diia_docs/diia_sign.md §3.4
+components:
+  schemas:
+    OfferScopes:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      description: >-
+        Scopes of the offer; must be a subset of the scopes granted to the branch. `sharing` —
+        documents that the user will be asked to share; `diiaId` — the Diia.Sign scenario
+        (`hashedFilesSigning` or `auth`).
+      properties:
+        sharing:
+          type: array
+          minItems: 1
+          description: Document types requested within this offer.
+          items:
+            $ref: 'common.yaml#/components/schemas/DocumentType'
+        diiaId:
+          type: array
+          maxItems: 1
+          description: Diia.Sign scenario of this offer.
+          items:
+            $ref: 'common.yaml#/components/schemas/DiiaIdScope'
+
+    OfferCreateRequest:
+      type: object
+      description: Offer creation body. Offers are meant to be reused — create once and pass `offer_id` per request.
+      required: [name, scopes]
+      properties:
+        name:
+          type: string
+          description: Service name shown to the user in the request (e.g. «Відкриття рахунку»).
+          example: Назва послуги
+        returnLink:
+          type: string
+          format: uri
+          description: >-
+            Optional link the user is redirected to after successful sharing/signing (your app,
+            website or chatbot — do not point to third-party resources). Must start with
+            `https://`. On Android 10+ the link must be allow-listed by ДП «Дія» — contact the
+            integration team if the redirect does not happen.
+          example: https://site.com
+        scopes:
+          $ref: '#/components/schemas/OfferScopes'
+      example:
+        name: Назва послуги
+        returnLink: https://site.com
+        scopes:
+          sharing: [internal-passport]
+
+    Offer:
+      description: Offer as returned by the API.
+      allOf:
+        - $ref: '#/components/schemas/OfferCreateRequest'
+        - type: object
+          required: [_id]
+          properties:
+            _id:
+              type: string
+              description: Offer identifier (offer_id).
+              example: 27924eb1d1f0f5f0c8c4c4ecb42f44bec9
+      example:
+        _id: 27924eb1d1f0f5f0c8c4c4ecb42f44bec9
+        name: Відкриття рахунку
+        scopes:
+          sharing: [internal-passport]
+        returnLink: https://site.com
+
+    OfferList:
+      type: object
+      required: [total, offers]
+      properties:
+        total:
+          type: integer
+          description: Total number of offers created on the branch.
+          example: 2
+        offers:
+          type: array
+          items:
+            $ref: '#/components/schemas/Offer'
+      example:
+        total: 2
+        offers:
+          - _id: 27924eb1d1f0f5f0c8c4c4ecb42f44bec9
+            name: Відкриття рахунку
+            scopes:
+              sharing: [internal-passport]
+            returnLink: https://site.com
+          - _id: 0dc97eb1d1f0f5f0c8c4c4d1cc633a81a
+            name: Відкриття рахунку
+            scopes:
+              sharing: [taxpayer-card]
+            returnLink: https://site.com

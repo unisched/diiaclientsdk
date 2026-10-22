@@ -1,0 +1,2048 @@
+openapi: 3.0.3
+info:
+  description: |-
+    OpenAPI specification of the Diia (ДП «Дія») REST API covering:
+
+    * **Sharing** — branches, offers, offline (barcode) and online (deeplink) document sharing,
+      request statuses;
+    * **Diia.Sign** — signing of file hashes (`hashedFilesSigning`) and authorization (`auth`),
+      initiated via deeplinks.
+
+    The encrypted package that the Diia mobile app delivers to the partner is described in a
+    separate specification — `diia-partner-receiver.yaml` (including the decrypted metadata
+    structure of every document type).
+
+    Environments (all individual acquirer/branch data differs between them):
+
+    * `https://api2.diia.gov.ua` — production (real Diia app and documents);
+    * `https://api2s.diia.gov.ua` — sandbox (test Diia app with the mock user «Дія Надія»).
+
+    Authorization is not OAuth 2.0: the partner exchanges its static `acquirer_token` for a
+    session token (`getSessionToken`) and passes it as a bearer token in every other call.
+
+    Source documents: `diia_docs/diia_sharing.md` (updated 05.08.26) and
+    `diia_docs/diia_sign.md` (updated 03.09.26).
+  title: Diia REST API — Sharing & Diia.Sign
+  version: 0.1.0
+servers:
+- description: Production — real users and documents.
+  url: https://api2.diia.gov.ua
+- description: Sandbox (test environment) — test Diia app with the mock user «Дія
+    Надія».
+  url: https://api2s.diia.gov.ua
+security:
+- bearerAuth: []
+tags:
+- description: Acquirer authentication — session tokens.
+  name: Auth
+- description: Branches (відділення) of the partner organization.
+  name: Branches
+- description: Offers (пропозиції) created on branches — reusable document/signing
+    request templates.
+  name: Offers
+- description: Document sharing requests (offline barcode and online deeplink scenarios).
+  name: Sharing
+- description: Diia.Sign scenarios — signing of file hashes and authorization via
+    deeplink.
+  name: DiiaSign
+- description: Sharing / signing request statuses.
+  name: Status
+paths:
+  /api/v1/auth/acquirer/{acquirer_token}:
+    get:
+      description: |-
+        Authorizes the partner server on the Diia server and returns a session token required by
+        every other API call. The session token lives for 2 hours; several tokens may be used in
+        parallel. Do not request a new token while the current one is still valid.
+
+        The `Authorization: Basic {auth_acquirer_token}` header is required **only in the test
+        environment**; the token value is provided separately by ДП «Дія».
+      operationId: getSessionToken
+      parameters:
+      - description: Acquirer token issued to the partner by ДП «Дія» for the specific
+          environment (test and production tokens differ).
+        example: bksoFji5v-test-token
+        explode: false
+        in: path
+        name: acquirer_token
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              example:
+                token: bXi124jbs3cFas...Sjf
+              schema:
+                $ref: "#/components/schemas/SessionToken"
+          description: Session token issued. Valid for 2 hours from this moment.
+        "401":
+          content:
+            application/json:
+              example:
+                name: Error
+                message: Acquirer not found by the provided token <acquirer_token>
+                code: 401
+                data: {}
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: Unknown acquirer token (production environment). Contact the
+            ДП «Дія» integration chat and report this error.
+      security:
+      - basicAuth: []
+      summary: Get an acquirer session token
+      tags:
+      - Auth
+  /api/v2/acquirers/branch:
+    post:
+      description: |-
+        Creates a branch (відділення) of the partner organization from which document sharing
+        requests are made. Branches are reusable — create the required number of branches once
+        (separately in the test and production environments). Mass creation may be blocked by the
+        service.
+
+        For API integration `deliveryTypes` must be `["api"]` and `offerRequestType` must be
+        `"dynamic"`. Field names are case-sensitive; send data in UTF-8.
+      operationId: createBranch
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BranchCreateRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              example:
+                _id: 5e8decccb92d8d73ad838c5d
+              schema:
+                $ref: "#/components/schemas/IdResponse"
+          description: Branch created.
+        "401":
+          content:
+            application/json:
+              example:
+                name: Error
+                message: Not authorized
+                code: 401
+                data: {}
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Session token is missing, invalid or expired (session tokens\
+            \ live 2 hours from the moment they are issued). Alternatively the `Authorization:\
+            \ Bearer {session_token}` header was not provided correctly."
+        "422":
+          content:
+            application/json:
+              example:
+                name: ValidationError
+                message: Parameters validation error!
+                code: 422
+                type: VALIDATION_ERROR
+                data:
+                - type: required
+                  message: The 'deliveryTypes' field is required.
+                  field: deliveryTypes
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Parameters validation error on branch creation/update. Make\
+            \ sure the body follows the documented structure (all fields are required,\
+            \ field names are case-sensitive)."
+      summary: Create a new branch
+      tags:
+      - Branches
+  /api/v2/acquirers/branches:
+    get:
+      operationId: getBranches
+      parameters:
+      - description: How many items to skip in the response (offset).
+        example: 0
+        explode: true
+        in: query
+        name: skip
+        required: false
+        schema:
+          minimum: 0
+          type: integer
+        style: form
+      - description: How many items to return. No more than 100 items per request
+          is recommended.
+        example: 100
+        explode: true
+        in: query
+        name: limit
+        required: false
+        schema:
+          minimum: 1
+          type: integer
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BranchList"
+          description: List of branches in the acquirer account.
+        "401":
+          content:
+            application/json:
+              example:
+                name: Error
+                message: Not authorized
+                code: 401
+                data: {}
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Session token is missing, invalid or expired (session tokens\
+            \ live 2 hours from the moment they are issued). Alternatively the `Authorization:\
+            \ Bearer {session_token}` header was not provided correctly."
+      summary: Get the list of branches
+      tags:
+      - Branches
+  /api/v2/acquirers/branch/{branchId}:
+    delete:
+      operationId: deleteBranch
+      parameters:
+      - description: Branch identifier (branch_id).
+        example: 5e8decccb92d8d73ad838c5d
+        explode: false
+        in: path
+        name: branchId
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "204":
+          description: Branch deleted.
+        "401":
+          content:
+            application/json:
+              example:
+                name: Error
+                message: Not authorized
+                code: 401
+                data: {}
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Session token is missing, invalid or expired (session tokens\
+            \ live 2 hours from the moment they are issued). Alternatively the `Authorization:\
+            \ Bearer {session_token}` header was not provided correctly."
+        "404":
+          content:
+            application/json:
+              example:
+                name: Error
+                message: The requested model Branch d441d209...f36 could not be found.
+                code: 404
+                data: null
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: Branch identifier does not exist or the branch has been deleted.
+      summary: Delete an existing branch
+      tags:
+      - Branches
+    get:
+      operationId: getBranch
+      parameters:
+      - description: Branch identifier (branch_id).
+        example: 5e8decccb92d8d73ad838c5d
+        explode: false
+        in: path
+        name: branchId
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Branch"
+          description: Branch JSON.
+        "401":
+          content:
+            application/json:
+              example:
+                name: Error
+                message: Not authorized
+                code: 401
+                data: {}
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Session token is missing, invalid or expired (session tokens\
+            \ live 2 hours from the moment they are issued). Alternatively the `Authorization:\
+            \ Bearer {session_token}` header was not provided correctly."
+        "404":
+          content:
+            application/json:
+              example:
+                name: Error
+                message: The requested model Branch d441d209...f36 could not be found.
+                code: 404
+                data: null
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: Branch identifier does not exist or the branch has been deleted.
+      summary: Get a branch by identifier
+      tags:
+      - Branches
+    put:
+      description: |-
+        Updates the branch. **Important:** delete the offers created on the branch before
+        editing it. Field names are case-sensitive; send data in UTF-8.
+      operationId: updateBranch
+      parameters:
+      - description: Branch identifier (branch_id).
+        example: 5e8decccb92d8d73ad838c5d
+        explode: false
+        in: path
+        name: branchId
+        required: true
+        schema:
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BranchCreateRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              example:
+                _id: 5e8decccb92d8d73ad838c5d
+              schema:
+                $ref: "#/components/schemas/IdResponse"
+          description: Branch updated.
+        "401":
+          content:
+            application/json:
+              example:
+                name: Error
+                message: Not authorized
+                code: 401
+                data: {}
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Session token is missing, invalid or expired (session tokens\
+            \ live 2 hours from the moment they are issued). Alternatively the `Authorization:\
+            \ Bearer {session_token}` header was not provided correctly."
+        "404":
+          content:
+            application/json:
+              example:
+                name: Error
+                message: The requested model Branch d441d209...f36 could not be found.
+                code: 404
+                data: null
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: Branch identifier does not exist or the branch has been deleted.
+        "422":
+          content:
+            application/json:
+              example:
+                name: ValidationError
+                message: Parameters validation error!
+                code: 422
+                type: VALIDATION_ERROR
+                data:
+                - type: required
+                  message: The 'deliveryTypes' field is required.
+                  field: deliveryTypes
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Parameters validation error on branch creation/update. Make\
+            \ sure the body follows the documented structure (all fields are required,\
+            \ field names are case-sensitive)."
+      summary: Update an existing branch
+      tags:
+      - Branches
+  /api/v1/acquirers/branch/{branchId}/offer:
+    post:
+      description: |-
+        Creates an offer (пропозиція) on the branch. Offers, like branches, must be reused —
+        create them once and pass `offer_id` with each request. The offer scopes must be a subset
+        of the scopes granted to the branch.
+
+        If `returnLink` is provided, the user is redirected to it after successful
+        sharing/signing (see also the offer `returnLink` notes in the `OfferCreateRequest`
+        schema).
+      operationId: createOffer
+      parameters:
+      - description: Branch identifier (branch_id).
+        example: 5e8decccb92d8d73ad838c5d
+        explode: false
+        in: path
+        name: branchId
+        required: true
+        schema:
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OfferCreateRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              example:
+                _id: 27924eb1d1f0f5f0c8c4c4ecb42f44bec9
+              schema:
+                $ref: "#/components/schemas/IdResponse"
+          description: Offer created.
+        "401":
+          content:
+            application/json:
+              example:
+                name: Error
+                message: Not authorized
+                code: 401
+                data: {}
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Session token is missing, invalid or expired (session tokens\
+            \ live 2 hours from the moment they are issued). Alternatively the `Authorization:\
+            \ Bearer {session_token}` header was not provided correctly."
+        "404":
+          content:
+            application/json:
+              example:
+                name: Error
+                message: The requested model Branch d441d209...f36 could not be found.
+                code: 404
+                data: null
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: Branch identifier does not exist or the branch has been deleted.
+      summary: Create an offer on a branch
+      tags:
+      - Offers
+  /api/v1/acquirers/branch/{branchId}/offers:
+    get:
+      description: Do not request more than 100 offers per call — use `skip`/`limit`
+        parameters.
+      operationId: getOffers
+      parameters:
+      - description: Branch identifier (branch_id).
+        example: 5e8decccb92d8d73ad838c5d
+        explode: false
+        in: path
+        name: branchId
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: How many items to skip in the response (offset).
+        example: 0
+        explode: true
+        in: query
+        name: skip
+        required: false
+        schema:
+          minimum: 0
+          type: integer
+        style: form
+      - description: How many items to return. No more than 100 items per request
+          is recommended.
+        example: 100
+        explode: true
+        in: query
+        name: limit
+        required: false
+        schema:
+          minimum: 1
+          type: integer
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OfferList"
+          description: List of offers created on the branch.
+        "401":
+          content:
+            application/json:
+              example:
+                name: Error
+                message: Not authorized
+                code: 401
+                data: {}
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Session token is missing, invalid or expired (session tokens\
+            \ live 2 hours from the moment they are issued). Alternatively the `Authorization:\
+            \ Bearer {session_token}` header was not provided correctly."
+        "404":
+          content:
+            application/json:
+              example:
+                name: Error
+                message: The requested model Branch d441d209...f36 could not be found.
+                code: 404
+                data: null
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: Branch identifier does not exist or the branch has been deleted.
+      summary: Get the list of offers on a branch
+      tags:
+      - Offers
+  /api/v1/acquirers/branch/{branchId}/offer/{offerId}:
+    delete:
+      operationId: deleteOffer
+      parameters:
+      - description: Branch identifier (branch_id).
+        example: 5e8decccb92d8d73ad838c5d
+        explode: false
+        in: path
+        name: branchId
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: Offer identifier (offer_id).
+        example: "1234"
+        explode: false
+        in: path
+        name: offerId
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "204":
+          description: Offer deleted.
+        "401":
+          content:
+            application/json:
+              example:
+                name: Error
+                message: Not authorized
+                code: 401
+                data: {}
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Session token is missing, invalid or expired (session tokens\
+            \ live 2 hours from the moment they are issued). Alternatively the `Authorization:\
+            \ Bearer {session_token}` header was not provided correctly."
+        "404":
+          content:
+            application/json:
+              example:
+                name: Error
+                message: The requested model Branch d441d209...f36 could not be found.
+                code: 404
+                data: null
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: Branch identifier does not exist or the branch has been deleted.
+      summary: Delete an offer on a branch
+      tags:
+      - Offers
+  /api/v1/acquirers/document-request:
+    post:
+      description: |-
+        Initiates document sharing at a physical branch: the operator passes the 13-digit
+        Code128 barcode generated by the user's Diia app (scanned or entered manually). The
+        barcode is valid for 3 minutes and is single-use.
+
+        On success a push notification with the sharing request is sent to the user. When the
+        user confirms, the encrypted package is delivered by the Diia app to the partner
+        endpoint; the partner must reply `200 {"success": true}` — see
+        `diia-partner-receiver.yaml`.
+
+        Use `getDocumentRequestStatus` to track the request.
+      operationId: createDocumentRequest
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocumentRequestCreate"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+          description: Request accepted — a push notification with the sharing request
+            is sent to the user.
+        "400":
+          content:
+            application/json:
+              examples:
+                documentTypeForbidden:
+                  summary: Branch has no permissions to share this document type
+                  value:
+                    name: Error
+                    message: "You have not access to this document type: foreign-passport"
+                    code: 400
+                    data: {}
+                barcodeNotFound:
+                  summary: The provided barcode does not exist
+                  value:
+                    name: Error
+                    message: Could not find the provided barcode
+                    code: 400
+                    data:
+                      barcode: "1111111111111"
+                barcodeNotFoundViaQrCode:
+                  summary: The provided barcode does not exist (QR-code variant of
+                    the payload)
+                  value:
+                    name: Error
+                    message: Could not find the provided barcode
+                    code: 400
+                    data:
+                      qr-code: https://…
+                barcodeAlreadyUsedTest:
+                  summary: Barcode already used (test environment)
+                  value:
+                    name: Error
+                    message: Document request by this barcode is already created
+                    code: 400
+                    data: {}
+                barcodeAlreadyUsedProduction:
+                  summary: Barcode already used (production environment)
+                  value:
+                    name: Error
+                    message: This code has been used already!
+                    code: 400
+                    data: {}
+                barcodeExpired:
+                  summary: Barcode lifetime expired (3 minutes)
+                  value:
+                    name: Error
+                    message: Code has been expired!
+                    code: 400
+                    data:
+                      now: 2021-04-21T12:42:27.257Z
+                      expirationDate: 2021-04-21T12:41:38.940Z
+                pushNotificationFailed:
+                  summary: Could not send push notification to the user's device
+                  value:
+                    name: Error
+                    message: Could not send push notification to the user
+                    code: 400
+                    data: null
+                certificateExpired:
+                  summary: Acquirer public encryption certificate expired
+                  value:
+                    name: Error
+                    message: Acquirer certificate has expired!
+                    code: 400
+                    data:
+                      acquirerId: 63498099e7b39ddf8d0388d5
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "The sharing request was rejected. Possible causes: the barcode\
+            \ does not exist; the barcode has already been used (barcodes are single-use);\
+            \ the barcode lifetime (3 minutes) expired; the branch has no permission\
+            \ to share the document type of the barcode; the push notification could\
+            \ not be delivered; the acquirer encryption certificate has expired."
+        "401":
+          content:
+            application/json:
+              example:
+                name: Error
+                message: Not authorized
+                code: 401
+                data: {}
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Session token is missing, invalid or expired (session tokens\
+            \ live 2 hours from the moment they are issued). Alternatively the `Authorization:\
+            \ Bearer {session_token}` header was not provided correctly."
+        "404":
+          content:
+            application/json:
+              example:
+                name: Error
+                message: The requested model Branch d441d209...f36 could not be found.
+                code: 404
+                data: null
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: Branch identifier does not exist or the branch has been deleted.
+      summary: Create a document sharing request (offline / barcode scenario)
+      tags:
+      - Sharing
+  /api/v1/acquirers/document-request/status:
+    get:
+      description: "Returns the status of an offline sharing request. Provide `barcode`\
+        \ and/or `requestId` — you may also pass only one of them. If a barcode was\
+        \ reused with a new `requestId`, the status of the original (already performed)\
+        \ sharing is returned."
+      operationId: getDocumentRequestStatus
+      parameters:
+      - description: Barcode of the sharing request. Provide `barcode` and/or `requestId`
+          — at least one of the two parameters is required.
+        explode: true
+        in: query
+        name: barcode
+        required: false
+        schema:
+          $ref: "#/components/schemas/Barcode"
+        style: form
+      - description: Partner request identifier. Provide `requestId` and/or the barcode/otp
+          — at least one of the two parameters is required.
+        explode: true
+        in: query
+        name: requestId
+        required: false
+        schema:
+          $ref: "#/components/schemas/RequestId"
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              example:
+                status: done
+              schema:
+                $ref: "#/components/schemas/RequestStatusResponse"
+          description: Current status of the sharing request.
+        "401":
+          content:
+            application/json:
+              example:
+                name: Error
+                message: Not authorized
+                code: 401
+                data: {}
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Session token is missing, invalid or expired (session tokens\
+            \ live 2 hours from the moment they are issued). Alternatively the `Authorization:\
+            \ Bearer {session_token}` header was not provided correctly."
+        "404":
+          content:
+            application/json:
+              example:
+                name: Error
+                message: "The requested model DocumentRequest [object Object] could\
+                  \ not be found."
+                code: 404
+                data: {}
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Either the status was requested for a barcode/otp that never\
+            \ had a request created, or the `requestId` was reused (`requestId` is\
+            \ unique)."
+      summary: Get the sharing status by barcode (offline scenario)
+      tags:
+      - Status
+  /api/v2/acquirers/branch/{branchId}/offer-request/dynamic:
+    post:
+      description: |-
+        Creates a dynamic offer request and returns a deeplink to be opened in the Diia mobile
+        app (for websites/terminals it is displayed as a QR code). The deeplink is one-time and
+        valid for 3 minutes.
+
+        The same operation covers three scenarios — the branch/offer scopes determine which one
+        is executed:
+
+        * **Online sharing (AppToApp / deeplink):** the user confirms the sharing request; the
+          encrypted package is delivered to the partner endpoint, which must reply
+          `200 {"success": true}` (see `diia-partner-receiver.yaml`).
+        * **Diia.Sign — signing a file hash** (`diiaId: [hashedFilesSigning]`): the user signs
+          the provided file hashes; the signed items are delivered to the partner endpoint (see
+          `receiveSignature`).
+        * **Diia.Sign — authorization** (`diiaId: [auth]`): the user's signed identifier is
+          delivered to the partner endpoint (see `receiveAuth`); the partner decides whether to
+          authorize the user.
+
+        If `returnLink` was provided at offer creation or in this request, the user is redirected
+        to it after the scenario completes successfully.
+
+        For the Diia.Sign authorization scenario `requestId` must be the base64-encoded
+        DSTU 7564:2014 hash of the uuid v4 requestId (see diia_sign.md §4.2.3.4).
+      operationId: createOfferRequestDynamic
+      parameters:
+      - description: Branch identifier (branch_id).
+        example: 5e8decccb92d8d73ad838c5d
+        explode: false
+        in: path
+        name: branchId
+        required: true
+        schema:
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            examples:
+              onlineSharing:
+                summary: Online sharing of two documents
+                value:
+                  offerId: 5e8decccb92d8d73ad838c5d
+                  returnLink: https://site.com
+                  requestId: a1234567-0123-1234-1234-123412341234
+                  useDiiaId: true
+              hashedFilesSigning:
+                summary: Diia.Sign — signing two file hashes
+                value:
+                  offerId: 5e8decccb92d8d73ad838c5d
+                  returnLink: https://site.com
+                  requestId: a1234567-0123-1234-1234-123412341234
+                  signAlgo: DSTU
+                  data:
+                    hashedFilesSigning:
+                      hashedFiles:
+                      - fileName: filename_1.pdf
+                        fileHash: 4X55SRSjNsx94BS6o9OyKyeLvYnCYwXEW46vz0wAqHA=
+                      - fileName: filename_2.pdf
+                        fileHash: MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI=
+              authorization:
+                summary: Diia.Sign — user authorization
+                value:
+                  offerId: 5e8decccb92d8d73ad838c5d
+                  returnLink: https://site.com
+                  requestId: a1234567-0123-1234-1234-123412341234
+            schema:
+              $ref: "#/components/schemas/OfferRequestDynamicCreate"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeeplinkResponse"
+          description: Deeplink created.
+        "400":
+          content:
+            application/json:
+              examples:
+                duplicateRequestId:
+                  summary: The requestId has already been sent before
+                  value:
+                    name: Error
+                    message: "Entity with a provided data already exists: [acquirerId:\
+                      \ XXX], [requestId: f123456e-1234-1234-1234-1b123456ab12], [prevOfferRequest:\
+                      \ null]"
+                    code: 400
+                    data: {}
+                certificateExpired:
+                  summary: Acquirer public encryption certificate expired
+                  value:
+                    name: Error
+                    message: Acquirer certificate has expired!
+                    code: 400
+                    data:
+                      acquirerId: 63498099e7b39ddf8d0388d5
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "The request was rejected: the `requestId` has already been\
+            \ used (`requestId` must be unique), or the public encryption certificate\
+            \ installed on the acquirer account has expired and must be replaced."
+        "401":
+          content:
+            application/json:
+              example:
+                name: Error
+                message: Not authorized
+                code: 401
+                data: {}
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Session token is missing, invalid or expired (session tokens\
+            \ live 2 hours from the moment they are issued). Alternatively the `Authorization:\
+            \ Bearer {session_token}` header was not provided correctly."
+        "403":
+          content:
+            application/json:
+              example:
+                name: Error
+                message: Only one scope value could be provided for the diiaId scope
+                code: 403
+                data: {}
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: Both Diia.Sign scenarios («hashedFilesSigning» and «auth»)
+            are integrated on the same branch — this is incompatible. Create at least
+            one separate branch per Diia.Sign scenario.
+        "404":
+          content:
+            application/json:
+              examples:
+                branchOfferNotFound:
+                  summary: Branch or offer not found (or the offer does not belong
+                    to the branch)
+                  value:
+                    name: Error
+                    message: The requested model BranchOffer ed292c0...fa1 could not
+                      be found.
+                    code: 404
+                    data: null
+                returnLinkRequired:
+                  summary: returnLink was provided as an empty string
+                  value:
+                    name: Error
+                    message: Return link should be provided
+                    code: 404
+                    data: {}
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "One of the following: the branch id in the path does not exist;\
+            \ the offer id in the body does not exist; the offer does not belong to\
+            \ the branch from the path; the `returnLink` field was sent as an empty\
+            \ string."
+        "422":
+          content:
+            application/json:
+              examples:
+                required:
+                  description: The `requestId` field is missing.
+                  value:
+                    name: Error
+                    message: Parameter validation error
+                    code: 422
+                    data:
+                      errors:
+                      - type: required
+                        message: The 'params.requestId' field is required.
+                        field: params.requestId
+                stringMin:
+                  description: The `requestId` is shorter than 10 characters.
+                  value:
+                    name: Error
+                    message: Parameter validation error
+                    code: 422
+                    data:
+                      errors:
+                      - type: stringMin
+                        message: The 'params.requestId' field length must be greater
+                          than or equal to 10 characters long.
+                        field: params.requestId
+                        expected: 10
+                        actual: 3
+                stringMax:
+                  description: The `requestId` is longer than 255 characters.
+                  value:
+                    name: Error
+                    message: Parameter validation error
+                    code: 422
+                    data:
+                      errors:
+                      - type: stringMax
+                        message: The 'params.requestId' field length must be less
+                          than or equal to 255 characters long.
+                        field: params.requestId
+                        expected: 255
+                        actual: 512
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: Parameter validation error — `requestId` is missing or its
+            length is out of the 10–255 range.
+      summary: Create a dynamic offer request and get a deeplink (online sharing /
+        Diia.Sign)
+      tags:
+      - Sharing
+      - DiiaSign
+  /api/v1/acquirers/offer-request/status:
+    get:
+      description: "Returns the status of an online request (sharing, file-hash signing\
+        \ or authorization). Provide `otp` and/or `requestId` — you may also pass\
+        \ only one of them. `otp` is the last segment of the deeplink returned by\
+        \ `createOfferRequestDynamic`."
+      operationId: getOfferRequestStatus
+      parameters:
+      - description: OTP — the last segment of the deeplink returned by `createOfferRequestDynamic`.
+          For deeplink `https://diia.app/acquirers/offer-request/dynamic/38abd418-f786-4a4d-a4d6-24fc842dacfc`
+          the otp is `38abd418-f786-4a4d-a4d6-24fc842dacfc`. Provide `otp` and/or
+          `requestId` — at least one of the two parameters is required.
+        example: 38abd418-f786-4a4d-a4d6-24fc842dacfc
+        explode: true
+        in: query
+        name: otp
+        required: false
+        schema:
+          format: uuid
+          type: string
+        style: form
+      - description: Partner request identifier. Provide `requestId` and/or the barcode/otp
+          — at least one of the two parameters is required.
+        explode: true
+        in: query
+        name: requestId
+        required: false
+        schema:
+          $ref: "#/components/schemas/RequestId"
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              example:
+                status: initialized
+              schema:
+                $ref: "#/components/schemas/RequestStatusResponse"
+          description: Current status of the request.
+        "401":
+          content:
+            application/json:
+              example:
+                name: Error
+                message: Not authorized
+                code: 401
+                data: {}
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Session token is missing, invalid or expired (session tokens\
+            \ live 2 hours from the moment they are issued). Alternatively the `Authorization:\
+            \ Bearer {session_token}` header was not provided correctly."
+        "404":
+          content:
+            application/json:
+              example:
+                name: Error
+                message: "The requested model DocumentRequest [object Object] could\
+                  \ not be found."
+                code: 404
+                data: {}
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: "Either the status was requested for a barcode/otp that never\
+            \ had a request created, or the `requestId` was reused (`requestId` is\
+            \ unique)."
+      summary: Get the status by otp (online sharing / Diia.Sign)
+      tags:
+      - Status
+      - DiiaSign
+components:
+  parameters:
+    AcquirerToken:
+      description: Acquirer token issued to the partner by ДП «Дія» for the specific
+        environment (test and production tokens differ).
+      example: bksoFji5v-test-token
+      explode: false
+      in: path
+      name: acquirer_token
+      required: true
+      schema:
+        type: string
+      style: simple
+    SkipQuery:
+      description: How many items to skip in the response (offset).
+      example: 0
+      explode: true
+      in: query
+      name: skip
+      required: false
+      schema:
+        minimum: 0
+        type: integer
+      style: form
+    LimitQuery:
+      description: How many items to return. No more than 100 items per request is
+        recommended.
+      example: 100
+      explode: true
+      in: query
+      name: limit
+      required: false
+      schema:
+        minimum: 1
+        type: integer
+      style: form
+    BranchId:
+      description: Branch identifier (branch_id).
+      example: 5e8decccb92d8d73ad838c5d
+      explode: false
+      in: path
+      name: branchId
+      required: true
+      schema:
+        type: string
+      style: simple
+    OfferId:
+      description: Offer identifier (offer_id).
+      example: "1234"
+      explode: false
+      in: path
+      name: offerId
+      required: true
+      schema:
+        type: string
+      style: simple
+    BarcodeQuery:
+      description: Barcode of the sharing request. Provide `barcode` and/or `requestId`
+        — at least one of the two parameters is required.
+      explode: true
+      in: query
+      name: barcode
+      required: false
+      schema:
+        $ref: "#/components/schemas/Barcode"
+      style: form
+    RequestIdQuery:
+      description: Partner request identifier. Provide `requestId` and/or the barcode/otp
+        — at least one of the two parameters is required.
+      explode: true
+      in: query
+      name: requestId
+      required: false
+      schema:
+        $ref: "#/components/schemas/RequestId"
+      style: form
+    OtpQuery:
+      description: OTP — the last segment of the deeplink returned by `createOfferRequestDynamic`.
+        For deeplink `https://diia.app/acquirers/offer-request/dynamic/38abd418-f786-4a4d-a4d6-24fc842dacfc`
+        the otp is `38abd418-f786-4a4d-a4d6-24fc842dacfc`. Provide `otp` and/or `requestId`
+        — at least one of the two parameters is required.
+      example: 38abd418-f786-4a4d-a4d6-24fc842dacfc
+      explode: true
+      in: query
+      name: otp
+      required: false
+      schema:
+        format: uuid
+        type: string
+      style: form
+  responses:
+    AcquirerNotFound:
+      content:
+        application/json:
+          example:
+            name: Error
+            message: Acquirer not found by the provided token <acquirer_token>
+            code: 401
+            data: {}
+          schema:
+            $ref: "#/components/schemas/ApiError"
+      description: Unknown acquirer token (production environment). Contact the ДП
+        «Дія» integration chat and report this error.
+    NotAuthorized:
+      content:
+        application/json:
+          example:
+            name: Error
+            message: Not authorized
+            code: 401
+            data: {}
+          schema:
+            $ref: "#/components/schemas/ApiError"
+      description: "Session token is missing, invalid or expired (session tokens live\
+        \ 2 hours from the moment they are issued). Alternatively the `Authorization:\
+        \ Bearer {session_token}` header was not provided correctly."
+    BranchValidationError:
+      content:
+        application/json:
+          example:
+            name: ValidationError
+            message: Parameters validation error!
+            code: 422
+            type: VALIDATION_ERROR
+            data:
+            - type: required
+              message: The 'deliveryTypes' field is required.
+              field: deliveryTypes
+          schema:
+            $ref: "#/components/schemas/ApiError"
+      description: "Parameters validation error on branch creation/update. Make sure\
+        \ the body follows the documented structure (all fields are required, field\
+        \ names are case-sensitive)."
+    BranchNotFound:
+      content:
+        application/json:
+          example:
+            name: Error
+            message: The requested model Branch d441d209...f36 could not be found.
+            code: 404
+            data: null
+          schema:
+            $ref: "#/components/schemas/ApiError"
+      description: Branch identifier does not exist or the branch has been deleted.
+    DocumentRequestBadRequest:
+      content:
+        application/json:
+          examples:
+            documentTypeForbidden:
+              summary: Branch has no permissions to share this document type
+              value:
+                name: Error
+                message: "You have not access to this document type: foreign-passport"
+                code: 400
+                data: {}
+            barcodeNotFound:
+              summary: The provided barcode does not exist
+              value:
+                name: Error
+                message: Could not find the provided barcode
+                code: 400
+                data:
+                  barcode: "1111111111111"
+            barcodeNotFoundViaQrCode:
+              summary: The provided barcode does not exist (QR-code variant of the
+                payload)
+              value:
+                name: Error
+                message: Could not find the provided barcode
+                code: 400
+                data:
+                  qr-code: https://…
+            barcodeAlreadyUsedTest:
+              summary: Barcode already used (test environment)
+              value:
+                name: Error
+                message: Document request by this barcode is already created
+                code: 400
+                data: {}
+            barcodeAlreadyUsedProduction:
+              summary: Barcode already used (production environment)
+              value:
+                name: Error
+                message: This code has been used already!
+                code: 400
+                data: {}
+            barcodeExpired:
+              summary: Barcode lifetime expired (3 minutes)
+              value:
+                name: Error
+                message: Code has been expired!
+                code: 400
+                data:
+                  now: 2021-04-21T12:42:27.257Z
+                  expirationDate: 2021-04-21T12:41:38.940Z
+            pushNotificationFailed:
+              summary: Could not send push notification to the user's device
+              value:
+                name: Error
+                message: Could not send push notification to the user
+                code: 400
+                data: null
+            certificateExpired:
+              summary: Acquirer public encryption certificate expired
+              value:
+                name: Error
+                message: Acquirer certificate has expired!
+                code: 400
+                data:
+                  acquirerId: 63498099e7b39ddf8d0388d5
+          schema:
+            $ref: "#/components/schemas/ApiError"
+      description: "The sharing request was rejected. Possible causes: the barcode\
+        \ does not exist; the barcode has already been used (barcodes are single-use);\
+        \ the barcode lifetime (3 minutes) expired; the branch has no permission to\
+        \ share the document type of the barcode; the push notification could not\
+        \ be delivered; the acquirer encryption certificate has expired."
+    DocumentRequestStatusNotFound:
+      content:
+        application/json:
+          example:
+            name: Error
+            message: "The requested model DocumentRequest [object Object] could not\
+              \ be found."
+            code: 404
+            data: {}
+          schema:
+            $ref: "#/components/schemas/ApiError"
+      description: "Either the status was requested for a barcode/otp that never had\
+        \ a request created, or the `requestId` was reused (`requestId` is unique)."
+    OfferRequestBadRequest:
+      content:
+        application/json:
+          examples:
+            duplicateRequestId:
+              summary: The requestId has already been sent before
+              value:
+                name: Error
+                message: "Entity with a provided data already exists: [acquirerId:\
+                  \ XXX], [requestId: f123456e-1234-1234-1234-1b123456ab12], [prevOfferRequest:\
+                  \ null]"
+                code: 400
+                data: {}
+            certificateExpired:
+              summary: Acquirer public encryption certificate expired
+              value:
+                name: Error
+                message: Acquirer certificate has expired!
+                code: 400
+                data:
+                  acquirerId: 63498099e7b39ddf8d0388d5
+          schema:
+            $ref: "#/components/schemas/ApiError"
+      description: "The request was rejected: the `requestId` has already been used\
+        \ (`requestId` must be unique), or the public encryption certificate installed\
+        \ on the acquirer account has expired and must be replaced."
+    SignScopeConflict:
+      content:
+        application/json:
+          example:
+            name: Error
+            message: Only one scope value could be provided for the diiaId scope
+            code: 403
+            data: {}
+          schema:
+            $ref: "#/components/schemas/ApiError"
+      description: Both Diia.Sign scenarios («hashedFilesSigning» and «auth») are
+        integrated on the same branch — this is incompatible. Create at least one
+        separate branch per Diia.Sign scenario.
+    OfferRequestNotFound:
+      content:
+        application/json:
+          examples:
+            branchOfferNotFound:
+              summary: Branch or offer not found (or the offer does not belong to
+                the branch)
+              value:
+                name: Error
+                message: The requested model BranchOffer ed292c0...fa1 could not be
+                  found.
+                code: 404
+                data: null
+            returnLinkRequired:
+              summary: returnLink was provided as an empty string
+              value:
+                name: Error
+                message: Return link should be provided
+                code: 404
+                data: {}
+          schema:
+            $ref: "#/components/schemas/ApiError"
+      description: "One of the following: the branch id in the path does not exist;\
+        \ the offer id in the body does not exist; the offer does not belong to the\
+        \ branch from the path; the `returnLink` field was sent as an empty string."
+    OfferRequestValidationError:
+      content:
+        application/json:
+          examples:
+            required:
+              description: The `requestId` field is missing.
+              value:
+                name: Error
+                message: Parameter validation error
+                code: 422
+                data:
+                  errors:
+                  - type: required
+                    message: The 'params.requestId' field is required.
+                    field: params.requestId
+            stringMin:
+              description: The `requestId` is shorter than 10 characters.
+              value:
+                name: Error
+                message: Parameter validation error
+                code: 422
+                data:
+                  errors:
+                  - type: stringMin
+                    message: The 'params.requestId' field length must be greater than
+                      or equal to 10 characters long.
+                    field: params.requestId
+                    expected: 10
+                    actual: 3
+            stringMax:
+              description: The `requestId` is longer than 255 characters.
+              value:
+                name: Error
+                message: Parameter validation error
+                code: 422
+                data:
+                  errors:
+                  - type: stringMax
+                    message: The 'params.requestId' field length must be less than
+                      or equal to 255 characters long.
+                    field: params.requestId
+                    expected: 255
+                    actual: 512
+          schema:
+            $ref: "#/components/schemas/ApiError"
+      description: Parameter validation error — `requestId` is missing or its length
+        is out of the 10–255 range.
+  schemas:
+    SessionToken:
+      example:
+        token: bXi124jbs3cFas...Sjf
+      properties:
+        token:
+          description: "Acquirer session token. Valid for 2 hours from the moment\
+            \ it is issued. Pass it as `Authorization: Bearer {session_token}` in\
+            \ every other API call. Several session tokens may be obtained and used\
+            \ in parallel (e.g. when the partner service runs on multiple nodes);\
+            \ do not request a new token while the current one is still valid."
+          example: bXi124jbs3cFas...Sjf
+          type: string
+      required:
+      - token
+      type: object
+    ApiError:
+      description: Error envelope returned by the Diia API.
+      example:
+        name: Error
+        message: Not authorized
+        code: 401
+        data: {}
+      properties:
+        name:
+          description: "Error name: `Error`, `UnauthorizedError`, `ModelNotFoundError`,\
+            \ `NotFoundError`, `ValidationError`, etc."
+          example: Error
+          type: string
+        message:
+          description: Human-readable error message.
+          example: Not authorized
+          type: string
+        code:
+          description: Error code (HTTP-like).
+          example: 401
+          type: integer
+        type:
+          description: "Machine-readable error type; present in some errors (e.g.\
+            \ `NOT_FOUND`, `VALIDATION_ERROR`)."
+          example: VALIDATION_ERROR
+          type: string
+        data:
+          description: "Additional error payload. Depends on the error kind: an empty\
+            \ object `{}`, `null`, an object with details (e.g. `{\"barcode\": \"\
+            1111111111111\"}` or `{\"now\": \"...\", \"expirationDate\": \"...\"}`),\
+            \ or an array of field errors (see `ValidationFieldError`)."
+      required:
+      - code
+      - data
+      - message
+      - name
+      type: object
+    DeliveryType:
+      description: Delivery type of the branch; must be `api` for API integration.
+      enum:
+      - api
+      type: string
+    OfferRequestType:
+      description: Offer request type of the branch; must be `dynamic` for API integration.
+      enum:
+      - dynamic
+      type: string
+    DocumentType:
+      description: Sharing scope key of a document type. Used in branch/offer `scopes.sharing`
+        and in the `documentTypes` array of shared metadata.
+      enum:
+      - internal-passport
+      - foreign-passport
+      - taxpayer-card
+      - reference-internally-displaced-person
+      - user-birth-record
+      - birth-certificate
+      - child-taxpayer-card
+      - driver-license
+      - vehicle-license
+      - student-id-card
+      - residence-permit-permanent
+      - residence-permit-temporary
+      - pension-card
+      - education-document
+      - veteran-certificate
+      - name-change-act-record
+      - marriage-act-record
+      - divorce-act-record
+      - income-report
+      - ok5
+      - ok7
+      type: string
+    DiiaIdScope:
+      description: "Diia.Sign capability of a branch/offer: `hashedFilesSigning` —\
+        \ signing of file hashes initiated in a third-party system, `auth` — user\
+        \ authorization. Only one value can be provided per branch (see the `403`\
+        \ error «Only one scope value could be provided for the diiaId scope»)."
+      enum:
+      - hashedFilesSigning
+      - auth
+      type: string
+    BranchScopes:
+      additionalProperties: false
+      description: Scopes granted to the branch. Use `sharing` for document sharing
+        and `diiaId` for Diia.Sign. `diiaId` accepts a single value — combining `hashedFilesSigning`
+        and `auth` on one branch is rejected with `403 "Only one scope value could
+        be provided for the diiaId scope"`; create a separate branch per Diia.Sign
+        scenario.
+      minProperties: 1
+      properties:
+        sharing:
+          description: Document types that may be shared from this branch.
+          items:
+            $ref: "#/components/schemas/DocumentType"
+          type: array
+        diiaId:
+          description: Diia.Sign scenario enabled for this branch.
+          items:
+            $ref: "#/components/schemas/DiiaIdScope"
+          maxItems: 1
+          type: array
+      type: object
+    BranchCreateRequest:
+      description: |-
+        Branch (відділення) request body, used both for creation and update. Field names are
+        case-sensitive; data must be sent in UTF-8 encoding. Before updating a branch, delete the
+        offers created on it.
+
+        `customFullName` / `customFullAddress` override what the Diia app shows to the user in the
+        sharing/signing request.
+      example:
+        customFullName: Повна назва запитувача документа
+        customFullAddress: Повна адреса відділення
+        name: Назва відділення
+        email: test@email.com
+        region: Київська обл.
+        district: Києво-Святошинський р-н
+        location: м. Вишневе
+        street: вул. Київська
+        house: 2г
+        deliveryTypes:
+        - api
+        offerRequestType: dynamic
+        scopes:
+          sharing:
+          - internal-passport
+          - foreign-passport
+      properties:
+        customFullName:
+          description: "Full name of the document requester. If set, it is shown in\
+            \ the Diia app request instead of the concatenation of the partner name\
+            \ and the branch `name`."
+          example: Повна назва запитувача документа
+          maxLength: 100
+          minLength: 1
+          type: string
+        customFullAddress:
+          description: "Full branch address in your own format. If set, it is shown\
+            \ in the Diia app request instead of the `region`, `district`, `location`,\
+            \ `street`, `house` concatenation."
+          example: Повна адреса відділення
+          maxLength: 200
+          minLength: 1
+          type: string
+        name:
+          description: Branch name.
+          example: Назва відділення
+          maxLength: 32
+          minLength: 1
+          type: string
+        email:
+          description: Branch e-mail address.
+          example: test@email.com
+          format: email
+          maxLength: 100
+          minLength: 6
+          type: string
+        region:
+          description: Region (область).
+          example: Київська обл.
+          maxLength: 100
+          minLength: 4
+          type: string
+        district:
+          description: District (район).
+          example: Києво-Святошинський р-н
+          maxLength: 100
+          minLength: 4
+          type: string
+        location:
+          description: City. The sharing integration guide states minLength 2 while
+            the Diia.Sign guide states minLength 4 — the stricter bound is used here.
+          example: м. Вишневе
+          maxLength: 100
+          minLength: 4
+          type: string
+        street:
+          description: Street.
+          example: вул. Київська
+          maxLength: 100
+          minLength: 4
+          type: string
+        house:
+          description: Building number.
+          example: 2г
+          maxLength: 20
+          minLength: 1
+          type: string
+        deliveryTypes:
+          description: Delivery types; must contain `api` for API integration.
+          items:
+            $ref: "#/components/schemas/DeliveryType"
+          type: array
+        offerRequestType:
+          $ref: "#/components/schemas/OfferRequestType"
+        scopes:
+          $ref: "#/components/schemas/BranchScopes"
+      required:
+      - deliveryTypes
+      - district
+      - email
+      - house
+      - location
+      - name
+      - offerRequestType
+      - region
+      - scopes
+      - street
+      type: object
+    IdResponse:
+      description: Identifier of the created or updated entity.
+      example:
+        _id: 5e8decccb92d8d73ad838c5d
+      properties:
+        _id:
+          description: "Entity identifier — `branch_id` for branches, `offer_id` for\
+            \ offers."
+          example: 5e8decccb92d8d73ad838c5d
+          type: string
+      required:
+      - _id
+      type: object
+    Branch:
+      allOf:
+      - $ref: "#/components/schemas/BranchCreateRequest"
+      - properties:
+          _id:
+            description: Branch identifier (branch_id).
+            example: 1d441d305adc2bff982fde159f8c91706a68a80b1cff5bd2aebecb43f71f25
+            type: string
+        required:
+        - _id
+        type: object
+      description: Branch (відділення) as returned by the API.
+      example:
+        _id: 1d441d305adc2bff982fde159f8c91706a68a80b1cff5bd2aebecb43f71f25
+        name: Назва
+        email: test@email.com
+        region: Київська обл.
+        district: Києво-Святошинський р-н
+        location: м. Вишневе
+        street: вул. Київська
+        house: 2г
+        customFullName: Повна назва запитувача документа
+        customFullAddress: Повна адреса відділення
+        deliveryTypes:
+        - api
+        offerRequestType: dynamic
+        scopes:
+          sharing:
+          - internal-passport
+          - foreign-passport
+          - taxpayer-card
+          - student-id-card
+          - reference-internally-displaced-person
+    BranchList:
+      example:
+        total: 1
+        branches:
+        - _id: 1d441d305adc2bff982fde159f8c91706a68a80b1cff5bd2aebecb43f71f25
+          name: Назва
+          email: test@email.com
+          region: Київська обл.
+          district: Києво-Святошинський р-н
+          location: м. Вишневе
+          street: вул. Київська
+          house: 2г
+          customFullName: Повна назва запитувача документа
+          customFullAddress: Повна адреса відділення
+          deliveryTypes:
+          - api
+          offerRequestType: dynamic
+          scopes:
+            sharing:
+            - internal-passport
+            - foreign-passport
+            - taxpayer-card
+            - reference-internally-displaced-person
+      properties:
+        total:
+          description: Total number of branches in the account.
+          example: 1
+          type: integer
+        branches:
+          items:
+            $ref: "#/components/schemas/Branch"
+          type: array
+      required:
+      - branches
+      - total
+      type: object
+    OfferScopes:
+      additionalProperties: false
+      description: Scopes of the offer; must be a subset of the scopes granted to
+        the branch. `sharing` — documents that the user will be asked to share; `diiaId`
+        — the Diia.Sign scenario (`hashedFilesSigning` or `auth`).
+      minProperties: 1
+      properties:
+        sharing:
+          description: Document types requested within this offer.
+          items:
+            $ref: "#/components/schemas/DocumentType"
+          minItems: 1
+          type: array
+        diiaId:
+          description: Diia.Sign scenario of this offer.
+          items:
+            $ref: "#/components/schemas/DiiaIdScope"
+          maxItems: 1
+          type: array
+      type: object
+    OfferCreateRequest:
+      description: Offer creation body. Offers are meant to be reused — create once
+        and pass `offer_id` per request.
+      example:
+        name: Назва послуги
+        returnLink: https://site.com
+        scopes:
+          sharing:
+          - internal-passport
+      properties:
+        name:
+          description: Service name shown to the user in the request (e.g. «Відкриття
+            рахунку»).
+          example: Назва послуги
+          type: string
+        returnLink:
+          description: "Optional link the user is redirected to after successful sharing/signing\
+            \ (your app, website or chatbot — do not point to third-party resources).\
+            \ Must start with `https://`. On Android 10+ the link must be allow-listed\
+            \ by ДП «Дія» — contact the integration team if the redirect does not\
+            \ happen."
+          example: https://site.com
+          format: uri
+          type: string
+        scopes:
+          $ref: "#/components/schemas/OfferScopes"
+      required:
+      - name
+      - scopes
+      type: object
+    Offer:
+      allOf:
+      - $ref: "#/components/schemas/OfferCreateRequest"
+      - properties:
+          _id:
+            description: Offer identifier (offer_id).
+            example: 27924eb1d1f0f5f0c8c4c4ecb42f44bec9
+            type: string
+        required:
+        - _id
+        type: object
+      description: Offer as returned by the API.
+      example:
+        _id: 27924eb1d1f0f5f0c8c4c4ecb42f44bec9
+        name: Відкриття рахунку
+        scopes:
+          sharing:
+          - internal-passport
+        returnLink: https://site.com
+    OfferList:
+      example:
+        total: 2
+        offers:
+        - _id: 27924eb1d1f0f5f0c8c4c4ecb42f44bec9
+          name: Відкриття рахунку
+          scopes:
+            sharing:
+            - internal-passport
+          returnLink: https://site.com
+        - _id: 0dc97eb1d1f0f5f0c8c4c4d1cc633a81a
+          name: Відкриття рахунку
+          scopes:
+            sharing:
+            - taxpayer-card
+          returnLink: https://site.com
+      properties:
+        total:
+          description: Total number of offers created on the branch.
+          example: 2
+          type: integer
+        offers:
+          items:
+            $ref: "#/components/schemas/Offer"
+          type: array
+      required:
+      - offers
+      - total
+      type: object
+    Barcode:
+      description: 13-digit Code128 barcode generated when the user flips a document
+        in the Diia app (shown in the app and read by the operator). Valid for 3 minutes
+        and single-use.
+      example: "3535267635434"
+      pattern: "^\\d{13}$"
+      type: string
+    RequestId:
+      description: "Partner-generated request identifier used to track the request.\
+        \ Returned in the `X-Document-Request-Trace-Id` header of the callback package.\
+        \ uuid v4 is the reference format, but any string between 10 and 255 characters\
+        \ is accepted. For the Diia.Sign authorization scenario the guide (§4.2.3.4)\
+        \ requires passing a base64-encoded DSTU 7564:2014 hash of the uuid v4 requestId\
+        \ here; the same value is returned in the `X-Document-Request-Trace-Id` header."
+      example: a1234567-0123-1234-1234-123412341234
+      maxLength: 255
+      minLength: 10
+      type: string
+    SignAlgo:
+      default: DSTU
+      description: |-
+        Signature algorithm for signed copies of digital documents and hashed-file signing:
+        * `DSTU` (default) — hashing with `HASH_ALGO_GOST34311`;
+        * `ECDSA` — hashing with `SHA256`;
+        * `DSTU4145-DSTU7564` — hashing with `HASH_ALGO_DSTU7564_256`.
+        For `DSTU` and `DSTU4145-DSTU7564` a base64 hash string of 44 characters (32 bytes after
+        decoding) is required; generation of such hashes is provided by the IIT library. With
+        `DSTU` and `DSTU4145-DSTU7564` the decrypted data is in Cyrillic, with `ECDSA` — in Latin.
+        Available from new versions of the Diia app.
+      enum:
+      - DSTU
+      - ECDSA
+      - DSTU4145-DSTU7564
+      example: DSTU4145-DSTU7564
+      type: string
+    DocumentRequestCreate:
+      description: |-
+        Offline sharing request body (barcode scenario). The barcode must be valid (3 minutes,
+        single-use) at the moment of the call.
+      example:
+        branchId: 5e8decccb92d8d73ad838c5d
+        barcode: "3535267635434"
+        requestId: a1234567-0123-1234-1234-123412341234
+      properties:
+        branchId:
+          description: Identifier of the branch that requests the documents.
+          example: 5e8decccb92d8d73ad838c5d
+          type: string
+        barcode:
+          description: 13-digit Code128 barcode generated when the user flips a document
+            in the Diia app (shown in the app and read by the operator). Valid for
+            3 minutes and single-use.
+          example: "3535267635434"
+          pattern: "^\\d{13}$"
+          type: string
+        requestId:
+          description: "Partner-generated request identifier used to track the request.\
+            \ Returned in the `X-Document-Request-Trace-Id` header of the callback\
+            \ package. uuid v4 is the reference format, but any string between 10\
+            \ and 255 characters is accepted. For the Diia.Sign authorization scenario\
+            \ the guide (§4.2.3.4) requires passing a base64-encoded DSTU 7564:2014\
+            \ hash of the uuid v4 requestId here; the same value is returned in the\
+            \ `X-Document-Request-Trace-Id` header."
+          example: a1234567-0123-1234-1234-123412341234
+          maxLength: 255
+          minLength: 10
+          type: string
+        useDiiaId:
+          description: "Optional. If `true`, the user is additionally asked to sign\
+            \ the document hashes with Diia.Sign (an active Diia.Sign certificate\
+            \ is required)."
+          example: true
+          type: boolean
+        signAlgo:
+          $ref: "#/components/schemas/SignAlgo"
+      required:
+      - barcode
+      - branchId
+      - requestId
+      type: object
+    SuccessResponse:
+      description: "Response the Diia app expects from the partner endpoint on success.\
+        \ The full expected shape is `{\"success\": <boolean>, \"error\": <string>}`\
+        \ — on success only `success: true` is normally returned (within 30 seconds,\
+        \ HTTP 200)."
+      example:
+        success: true
+      properties:
+        success:
+          description: Operation result flag.
+          type: boolean
+        error:
+          description: Optional human-readable error description (the app expects
+            the field in the contract; omit it on success).
+          type: string
+      required:
+      - success
+      type: object
+    RequestStatus:
+      description: |-
+        Sharing / Diia.Sign request status:
+        * `initialized` — (online only) the deeplink was issued, the user has not opened it yet, the deeplink is not expired;
+        * `processing` — the request reached the app: for barcode sharing the push was sent to the user; for online scenarios the user opened the deeplink; or the user dropped out without completing;
+        * `done` — data successfully delivered to the partner endpoint and the partner replied `200 {"success": true}`;
+        * `refuse` — the user declined, the code/deeplink was reused, or delivery to the partner endpoint failed;
+        * `notUsed` — (online only) the user did not open the deeplink within 3 minutes.
+      enum:
+      - initialized
+      - processing
+      - done
+      - refuse
+      - notUsed
+      example: done
+      type: string
+    RequestStatusResponse:
+      example:
+        status: done
+      properties:
+        status:
+          $ref: "#/components/schemas/RequestStatus"
+      required:
+      - status
+      type: object
+    SignType:
+      default: 16
+      description: |-
+        Type of the CAdES signature. Default is `16` (CAdES_X_Long):
+        * `1` — `EU_SIGN_TYPE_CADES_BES`;
+        * `4` — `EU_SIGN_TYPE_CADES_T`;
+        * `8` — `EU_SIGN_TYPE_CADES_C`;
+        * `16` — `EU_SIGN_TYPE_CADES_X_LONG`;
+        * `128` — `EU_SIGN_TYPE_CADES_X_LONG_TRUSTED`;
+        * `144` — `EU_SIGN_TYPE_CADES_X_LONG_TRUSTED_DIIA_SIGN_DSTU_EDITION`.
+      enum:
+      - 1
+      - 4
+      - 8
+      - 16
+      - 128
+      - 144
+      type: integer
+    HashedFile:
+      properties:
+        fileName:
+          description: File name shown to the user in the Diia app.
+          example: filename_1.pdf
+          type: string
+        fileHash:
+          description: "Base64-encoded hash to be signed — 44 characters long (32\
+            \ bytes after decoding). Per §2.1.2 of the guide the hash is computed\
+            \ according to ДСТУ 7564:2014; §3.5 additionally defines the hash function\
+            \ per `signAlgo` (`HASH_ALGO_GOST34311` for `DSTU`, `SHA256` for `ECDSA`,\
+            \ `HASH_ALGO_DSTU7564_256` for `DSTU4145-DSTU7564`). Generation of such\
+            \ hashes is provided by the IIT library."
+          example: 4X55SRSjNsx94BS6o9OyKyeLvYnCYwXEW46vz0wAqHA=
+          type: string
+      required:
+      - fileHash
+      - fileName
+      type: object
+    HashedFilesSigning:
+      properties:
+        hashedFiles:
+          description: Hashes of the files to be signed. Signing 5–7 hashes per request
+            is recommended (no hard limit is set). `fileName` and `fileHash` values
+            must be unique within the array.
+          items:
+            $ref: "#/components/schemas/HashedFile"
+          minItems: 1
+          type: array
+      required:
+      - hashedFiles
+      type: object
+    HashedFilesSigningData:
+      description: Diia.Sign payload; provide only for the `hashedFilesSigning` scenario.
+      properties:
+        hashedFilesSigning:
+          $ref: "#/components/schemas/HashedFilesSigning"
+      type: object
+    OfferRequestDynamicCreate:
+      description: |-
+        Body of `POST /api/v2/acquirers/branch/{branchId}/offer-request/dynamic`. The same
+        operation serves three scenarios and the scenario is determined by the branch/offer
+        scopes, not by the body shape:
+
+        * **Online sharing** — the offer has `sharing` scopes; `useDiiaId` is optional; the user
+          gets a deeplink to open in the Diia app and share the requested documents.
+        * **Diia.Sign — signing a file hash** — the offer has `diiaId: [hashedFilesSigning]`;
+          `data.hashedFilesSigning` is required; `signType`, `noSigningTime`, `noContentTimestamp`
+          control the CAdES signature.
+        * **Diia.Sign — authorization** — the offer has `diiaId: [auth]`; `data` is not sent.
+      example:
+        offerId: 5e8decccb92d8d73ad838c5d
+        returnLink: https://site.com
+        requestId: a1234567-0123-1234-1234-123412341234
+        signAlgo: DSTU
+        data:
+          hashedFilesSigning:
+            hashedFiles:
+            - fileName: filename_1.pdf
+              fileHash: 4X55SRSjNsx94BS6o9OyKyeLvYnCYwXEW46vz0wAqHA=
+      properties:
+        offerId:
+          description: Identifier of the offer (offer_id). The offer must belong to
+            the branch specified in the path and its scopes must be allowed for that
+            branch.
+          example: 5e8decccb92d8d73ad838c5d
+          type: string
+        returnLink:
+          description: Optional link the user is redirected to after successful sharing/signing.
+            Must start with `https://`. An empty string is rejected with `Return link
+            should be provided`.
+          example: https://site.com
+          format: uri
+          type: string
+        requestId:
+          description: "Partner-generated request identifier used to track the request.\
+            \ Returned in the `X-Document-Request-Trace-Id` header of the callback\
+            \ package. uuid v4 is the reference format, but any string between 10\
+            \ and 255 characters is accepted. For the Diia.Sign authorization scenario\
+            \ the guide (§4.2.3.4) requires passing a base64-encoded DSTU 7564:2014\
+            \ hash of the uuid v4 requestId here; the same value is returned in the\
+            \ `X-Document-Request-Trace-Id` header."
+          example: a1234567-0123-1234-1234-123412341234
+          maxLength: 255
+          minLength: 10
+          type: string
+        useDiiaId:
+          description: "Optional (sharing scenario). If `true`, the user is additionally\
+            \ asked to sign the document hashes with Diia.Sign."
+          example: true
+          type: boolean
+        signAlgo:
+          $ref: "#/components/schemas/SignAlgo"
+        signType:
+          $ref: "#/components/schemas/SignType"
+        noSigningTime:
+          default: false
+          description: '`true` — do not add the signing time to the signature; `false`
+            (default) — add it.'
+          type: boolean
+        noContentTimestamp:
+          default: false
+          description: '`true` — do not receive a content timestamp; `false` (default)
+            — receive it.'
+          type: boolean
+        data:
+          $ref: "#/components/schemas/HashedFilesSigningData"
+      required:
+      - offerId
+      - requestId
+      type: object
+    DeeplinkResponse:
+      example:
+        deeplink: https://diia.app/acquirers/offer-request/dynamic/f6d1dc4c-8043-4c25-b85f-bd5663831bc3
+      properties:
+        deeplink:
+          description: One-time deeplink that opens the request in the Diia mobile
+            app. Valid for 3 minutes from creation. Must be opened by the Diia app
+            of the matching environment (test deeplinks only open in the test app
+            and vice versa).
+          example: https://diia.app/acquirers/offer-request/dynamic/f6d1dc4c-8043-4c25-b85f-bd5663831bc3
+          format: uri
+          type: string
+      required:
+      - deeplink
+      type: object
+  securitySchemes:
+    bearerAuth:
+      description: "Session token from `getSessionToken` — pass it as `Authorization:\
+        \ Bearer {session_token}`. Valid for 2 hours from issuance."
+      scheme: bearer
+      type: http
+    basicAuth:
+      description: Basic authentication with the `auth_acquirer_token` that ДП «Дія»
+        provides separately. Used only by `getSessionToken` and only in the test environment.
+      scheme: basic
+      type: http
+

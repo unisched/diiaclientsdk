@@ -1,0 +1,193 @@
+# Diia — document sharing metadata (decrypted `encodeData` payload).
+# Source: diia_docs/diia_metadata.md
+components:
+  schemas:
+    ErrorDocument:
+      type: object
+      description: A requested document that could not be shared.
+      required: [documentType, result]
+      properties:
+        documentType:
+          $ref: 'common.yaml#/components/schemas/DocumentType'
+        result:
+          type: integer
+          description: Error code for this document (HTTP-like).
+          example: 404
+
+    DocumentSharingMetadata:
+      type: object
+      description: |-
+        Decrypted metadata JSON. In the barcode (offline) scenario the envelope contains
+        `barcode` instead of `requestId`/`offerRequestId`. The `data` object contains only the
+        document types the user actually shared.
+      required: [documentTypes, data]
+      properties:
+        requestId:
+          type: string
+          description: The `requestId` that the partner passed in the sharing request.
+          example: a123456b-0310-3339-1234-123412341234
+        offerRequestId:
+          type: string
+          description: Internal Diia request identifier (not present in barcode sharing).
+          example: dd4bac978ced06bc13678d62202d064936fead480aded3741bb26f76b5e9324641df59b8524d083fc296ec57184cb635ce93994caa4c6bd396462d19fb91899d
+        barcode:
+          type: string
+          description: Barcode of the sharing request (barcode scenario only).
+          example: '3535267635434'
+        errorDocuments:
+          type: array
+          description: Documents that failed to be shared; an empty array when everything succeeded.
+          items:
+            $ref: '#/components/schemas/ErrorDocument'
+        documentTypes:
+          type: array
+          description: Document types the user shared.
+          items:
+            $ref: 'common.yaml#/components/schemas/DocumentType'
+        data:
+          type: object
+          description: Document metadata keyed by document type.
+          additionalProperties: false
+          properties:
+            internal-passport:
+              type: array
+              items:
+                $ref: 'documents/passports.yaml#/components/schemas/InternalPassport'
+            foreign-passport:
+              type: array
+              items:
+                $ref: 'documents/passports.yaml#/components/schemas/ForeignPassport'
+            taxpayer-card:
+              type: array
+              items:
+                $ref: 'documents/taxpayer.yaml#/components/schemas/TaxpayerCard'
+            child-taxpayer-card:
+              type: array
+              items:
+                $ref: 'documents/taxpayer.yaml#/components/schemas/ChildTaxpayerCard'
+            reference-internally-displaced-person:
+              type: array
+              items:
+                $ref: 'documents/identity.yaml#/components/schemas/InternallyDisplacedReference'
+            user-birth-record:
+              type: array
+              items:
+                $ref: 'documents/birth-records.yaml#/components/schemas/UserBirthRecord'
+            birth-certificate:
+              type: array
+              items:
+                $ref: 'documents/birth-records.yaml#/components/schemas/BirthCertificate'
+            driver-license:
+              type: array
+              items:
+                $ref: 'documents/vehicle.yaml#/components/schemas/DriverLicense'
+            vehicle-license:
+              type: array
+              items:
+                $ref: 'documents/vehicle.yaml#/components/schemas/VehicleLicense'
+            student-id-card:
+              type: array
+              items:
+                $ref: 'documents/identity.yaml#/components/schemas/StudentIdCard'
+            residence-permit-permanent:
+              type: array
+              items:
+                $ref: 'documents/identity.yaml#/components/schemas/ResidencePermitPermanent'
+            residence-permit-temporary:
+              type: array
+              items:
+                $ref: 'documents/identity.yaml#/components/schemas/ResidencePermitTemporary'
+            pension-card:
+              type: array
+              items:
+                $ref: 'documents/identity.yaml#/components/schemas/PensionCard'
+            education-document:
+              type: array
+              items:
+                $ref: 'documents/education.yaml#/components/schemas/EducationDocument'
+            veteran-certificate:
+              type: array
+              items:
+                $ref: 'documents/identity.yaml#/components/schemas/VeteranCertificate'
+            name-change-act-record:
+              type: array
+              items:
+                $ref: 'documents/act-records.yaml#/components/schemas/NameChangeActRecord'
+            marriage-act-record:
+              type: array
+              items:
+                $ref: 'documents/act-records.yaml#/components/schemas/MarriageActRecord'
+            divorce-act-record:
+              type: array
+              items:
+                $ref: 'documents/act-records.yaml#/components/schemas/DivorceActRecord'
+            income-report:
+              type: array
+              items:
+                $ref: 'documents/social.yaml#/components/schemas/IncomeReport'
+            ok5:
+              type: array
+              items:
+                $ref: 'documents/social.yaml#/components/schemas/Ok5'
+            ok7:
+              type: array
+              items:
+                $ref: 'documents/social.yaml#/components/schemas/Ok7'
+      example:
+        requestId: a123456b-1234-0123-1234-123412341234
+        offerRequestId: f41fb60a6d40ca20b3521b37f8167cc4e1e4bc189e5269896972c1ed9258bee04e35d7746a0976584e2a60bb91e2aea3b6bfcd5a75b7c14049e93675ec7ecba5
+        errorDocuments:
+          - documentType: internal-passport
+            result: 404
+        documentTypes:
+          - foreign-passport
+          - driver-license
+        data:
+          foreign-passport:
+            - taxpayerNumber: '3609606092'
+              residenceUA: "УКРАЇНА КИЇВСЬКА ОБЛАСТЬ ОБУХІВСЬКИЙ РАЙОН М. ОБУХІВ ВУЛ. КИЇВСЬКА БУД. 21 КВ. 12.\nДата реєстрації: 10.08.2001"
+              docNumber: FT373737
+              genderUA: Ч
+              nationalityUA: Україна
+              lastNameUA: Бондаренко
+              firstNameUA: Петро
+              middleNameUA: Васильович
+              birthday: '10.10.2000'
+              birthPlaceUA: КИЇВСЬКА ОБЛ.
+              issueDate: '28.11.2018'
+              expirationDate: '28.11.2028'
+              recordNumber: 20001010-01234
+              departmentUA: '3238'
+              countryCode: UKR
+              genderEN: M
+              id: 20001010-01234-2018-11-28
+              lastNameEN: Bondarenko
+              firstNameEN: Petro
+              departmentEN: '3238'
+              fileName: foreign-passport-44568e4e-bbd2-44e5-21ee-c7819a984a61-02.06.2025, 11:06:35-1.pdf.p7s
+          driver-license:
+            - ua:
+                lastName: {code: '1.', name: Прізвище, value: Бондаренко}
+                firstName: {code: '2.', name: Ім’я та по батькові, value: Петро Васильович}
+                birth: {code: '3.', name: Дата та місце народження, value: "10.10.2000\nКИЇВСЬКА ОБЛ., ОБУХІВСЬКИЙ  Р-Н, М. ОБУХІВ"}
+                issueDate: {code: 4а., name: Дата видачі, value: '23.11.2016'}
+                expiryDate: {code: 4b., name: Дійсний до, value: '23.11.2046'}
+                department: {code: 4с., name: 'Орган, що видав', value: 'ТСЦ 3244'}
+                identifier: {code: 4d., name: УНЗР, value: 19981029-06278}
+                documentNumber: {code: '5.', name: Номер документа, value: ВХТ875480}
+                categories:
+                  - category: {code: '9.', name: Категорія, value: C}
+                    openingDate: {code: '10.', name: Дата відкриття категорії, value: '23.11.2016'}
+              eng:
+                lastName: {code: '1.', name: 'Surname:', value: Bondarenko}
+                firstName: {code: '2.', name: 'Given name(s):', value: Petro}
+                birth: {code: '3.', name: 'Date and place of birth:', value: "29.10.1998\nКИЇВСЬКА ОБЛ., ОБУХІВСЬКИЙ  Р-Н, М. ОБУХІВ"}
+                issueDate: {code: 4а., name: 'Date of issue:', value: '23.11.2016'}
+                expiryDate: {code: 4b., name: 'Expiry date:', value: '23.11.2046'}
+                department: {code: 4с., name: 'Issuing authority:', value: 'ТСЦ 3244'}
+                identifier: {code: 4d., name: 'Record number:', value: 20001010-01234}
+                documentNumber: {code: '5.', name: 'Licence number:', value: ВХТ875487}
+                categories:
+                  - category: {code: '9.', name: 'Category:', value: C}
+                    openingDate: {code: '10.', name: 'Category issuing date:', value: '23.11.2016'}
+              fileName: driver-license-44568e4e-bbd2-42e5-81ee-c7819a984a61-02.06.2025, 11:06:35-1.pdf.p7s

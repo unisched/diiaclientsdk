@@ -1,0 +1,143 @@
+# Diia REST API — request payload schemas for sharing and Diia.Sign.
+# Sources: diia_docs/diia_sharing.md §2.6–2.7, diia_docs/diia_sign.md §3.5–3.6
+components:
+  schemas:
+    DocumentRequestCreate:
+      type: object
+      description: |-
+        Offline sharing request body (barcode scenario). The barcode must be valid (3 minutes,
+        single-use) at the moment of the call.
+      required: [branchId, barcode, requestId]
+      properties:
+        branchId:
+          type: string
+          description: Identifier of the branch that requests the documents.
+          example: 5e8decccb92d8d73ad838c5d
+        barcode:
+          $ref: 'common.yaml#/components/schemas/Barcode'
+        requestId:
+          $ref: 'common.yaml#/components/schemas/RequestId'
+        useDiiaId:
+          type: boolean
+          description: >-
+            Optional. If `true`, the user is additionally asked to sign the document hashes with
+            Diia.Sign (an active Diia.Sign certificate is required).
+          example: true
+        signAlgo:
+          $ref: 'common.yaml#/components/schemas/SignAlgo'
+      example:
+        branchId: 5e8decccb92d8d73ad838c5d
+        barcode: '3535267635434'
+        requestId: a1234567-0123-1234-1234-123412341234
+
+    OfferRequestDynamicCreate:
+      type: object
+      description: |-
+        Body of `POST /api/v2/acquirers/branch/{branchId}/offer-request/dynamic`. The same
+        operation serves three scenarios and the scenario is determined by the branch/offer
+        scopes, not by the body shape:
+
+        * **Online sharing** — the offer has `sharing` scopes; `useDiiaId` is optional; the user
+          gets a deeplink to open in the Diia app and share the requested documents.
+        * **Diia.Sign — signing a file hash** — the offer has `diiaId: [hashedFilesSigning]`;
+          `data.hashedFilesSigning` is required; `signType`, `noSigningTime`, `noContentTimestamp`
+          control the CAdES signature.
+        * **Diia.Sign — authorization** — the offer has `diiaId: [auth]`; `data` is not sent.
+      required: [offerId, requestId]
+      properties:
+        offerId:
+          type: string
+          description: >-
+            Identifier of the offer (offer_id). The offer must belong to the branch specified in
+            the path and its scopes must be allowed for that branch.
+          example: 5e8decccb92d8d73ad838c5d
+        returnLink:
+          type: string
+          format: uri
+          description: >-
+            Optional link the user is redirected to after successful sharing/signing. Must start
+            with `https://`. An empty string is rejected with `Return link should be provided`.
+          example: https://site.com
+        requestId:
+          $ref: 'common.yaml#/components/schemas/RequestId'
+        useDiiaId:
+          type: boolean
+          description: >-
+            Optional (sharing scenario). If `true`, the user is additionally asked to sign the
+            document hashes with Diia.Sign.
+          example: true
+        signAlgo:
+          $ref: 'common.yaml#/components/schemas/SignAlgo'
+        signType:
+          $ref: '#/components/schemas/SignType'
+        noSigningTime:
+          type: boolean
+          default: false
+          description: '`true` — do not add the signing time to the signature; `false` (default) — add it.'
+        noContentTimestamp:
+          type: boolean
+          default: false
+          description: '`true` — do not receive a content timestamp; `false` (default) — receive it.'
+        data:
+          $ref: '#/components/schemas/HashedFilesSigningData'
+      example:
+        offerId: 5e8decccb92d8d73ad838c5d
+        returnLink: https://site.com
+        requestId: a1234567-0123-1234-1234-123412341234
+        signAlgo: DSTU
+        data:
+          hashedFilesSigning:
+            hashedFiles:
+              - fileName: filename_1.pdf
+                fileHash: 4X55SRSjNsx94BS6o9OyKyeLvYnCYwXEW46vz0wAqHA=
+
+    HashedFilesSigningData:
+      type: object
+      description: Diia.Sign payload; provide only for the `hashedFilesSigning` scenario.
+      properties:
+        hashedFilesSigning:
+          $ref: '#/components/schemas/HashedFilesSigning'
+
+    HashedFilesSigning:
+      type: object
+      required: [hashedFiles]
+      properties:
+        hashedFiles:
+          type: array
+          minItems: 1
+          description: >-
+            Hashes of the files to be signed. Signing 5–7 hashes per request is recommended (no
+            hard limit is set). `fileName` and `fileHash` values must be unique within the array.
+          items:
+            $ref: '#/components/schemas/HashedFile'
+
+    HashedFile:
+      type: object
+      required: [fileName, fileHash]
+      properties:
+        fileName:
+          type: string
+          description: File name shown to the user in the Diia app.
+          example: filename_1.pdf
+        fileHash:
+          type: string
+          description: >-
+            Base64-encoded hash to be signed — 44 characters long (32 bytes after decoding).
+            Per §2.1.2 of the guide the hash is computed according to ДСТУ 7564:2014; §3.5
+            additionally defines the hash function per `signAlgo` (`HASH_ALGO_GOST34311` for
+            `DSTU`, `SHA256` for `ECDSA`, `HASH_ALGO_DSTU7564_256` for `DSTU4145-DSTU7564`).
+            Generation of such hashes is provided by the IIT library.
+          example: 4X55SRSjNsx94BS6o9OyKyeLvYnCYwXEW46vz0wAqHA=
+
+    SignType:
+      type: integer
+      default: 16
+      description: |-
+        Type of the CAdES signature. Default is `16` (CAdES_X_Long):
+        * `1` — `EU_SIGN_TYPE_CADES_BES`;
+        * `4` — `EU_SIGN_TYPE_CADES_T`;
+        * `8` — `EU_SIGN_TYPE_CADES_C`;
+        * `16` — `EU_SIGN_TYPE_CADES_X_LONG`;
+        * `128` — `EU_SIGN_TYPE_CADES_X_LONG_TRUSTED`;
+        * `144` — `EU_SIGN_TYPE_CADES_X_LONG_TRUSTED_DIIA_SIGN_DSTU_EDITION`.
+      enum: [1, 4, 8, 16, 128, 144]

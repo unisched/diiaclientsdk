@@ -1,0 +1,29 @@
+# Path item: GET /api/v1/auth/acquirer/{acquirer_token}
+# Sources: diia_docs/diia_sharing.md §2.2, §2.7.1; diia_docs/diia_sign.md §3.1
+SessionToken:
+  get:
+    tags: [Auth]
+    summary: Get an acquirer session token
+    description: |-
+      Authorizes the partner server on the Diia server and returns a session token required by
+      every other API call. The session token lives for 2 hours; several tokens may be used in
+      parallel. Do not request a new token while the current one is still valid.
+
+      The `Authorization: Basic {auth_acquirer_token}` header is required **only in the test
+      environment**; the token value is provided separately by ДП «Дія».
+    operationId: getSessionToken
+    security:
+      - basicAuth: []
+    parameters:
+      - $ref: '../components/parameters.yaml#/components/parameters/AcquirerToken'
+    responses:
+      '200':
+        description: Session token issued. Valid for 2 hours from this moment.
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/components/schemas/SessionToken'
+            example:
+              token: bXi124jbs3cFas...Sjf
+      '401':
+        $ref: '../components/responses.yaml#/components/responses/AcquirerNotFound'

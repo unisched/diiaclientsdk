@@ -1,0 +1,415 @@
+# Diia — passport document metadata.
+# Source: diia_docs/diia_metadata.md («Паспорт громадянина України у формі ID-картки», «Закордонний паспорт»)
+components:
+  schemas:
+    RegistrationAddress:
+      type: object
+      description: Registration address of the document owner.
+      required:
+        - cbc_country
+        - country_id
+        - postbox
+        - address_koatuu
+        - address_katotth
+        - region
+        - region_district
+        - city_district
+        - settlement_name
+        - settlement_type
+        - street_name
+        - street_type
+        - building_number
+        - building_part
+        - apartment
+        - registration_date
+        - cancelregistration_date
+        - address_grom_katottg
+        - settlement_district_katottg
+      properties:
+        cbc_country:
+          type: string
+          description: Country name.
+          example: УКРАЇНА
+        country_id:
+          oneOf:
+            - type: string
+            - type: integer
+          description: Country identifier; returned as a string in some payloads and as a number in others.
+          example: '804'
+        postbox:
+          type: string
+          description: Postal index.
+          example: ''
+        address_koatuu:
+          type: string
+          description: KOATUU code.
+          example: '3225510100'
+        address_katotth:
+          type: string
+          description: KATOTTH code.
+          example: ''
+        region:
+          type: string
+          description: Region name.
+          example: КИЇВСЬКА ОБЛАСТЬ
+        region_district:
+          type: string
+          description: District of the region.
+          example: ''
+        city_district:
+          type: string
+          description: District of the city.
+          example: ''
+        settlement_name:
+          type: string
+          description: Settlement name.
+          example: ЯГОТИН
+        settlement_type:
+          type: string
+          description: Settlement type.
+          example: М.
+        street_name:
+          type: string
+          description: Street name.
+          example: КИЇВСЬКА
+        street_type:
+          type: string
+          description: Street type.
+          example: ''
+        building_number:
+          type: string
+          description: Building number.
+          example: '110'
+        building_part:
+          type: string
+          description: Building part (block) number.
+          example: ''
+        apartment:
+          type: string
+          description: Apartment number.
+          example: '10'
+        registration_date:
+          type: string
+          description: Date of registration at this address, DD.MM.YYYY.
+          example: '28.03.2009'
+        cancelregistration_date:
+          type: string
+          nullable: true
+          description: Date of cancellation of registration at this address; `null` when not cancelled.
+        address_grom_katottg:
+          type: string
+          description: KATOTTH code of the territorial community (if available).
+          example: ''
+        settlement_district_katottg:
+          type: string
+          description: KATOTTH code of the district the settlement belongs to.
+          example: ''
+
+    InternalPassport:
+      type: object
+      description: |-
+        Паспорт громадянина України у формі ID-картки (scope `internal-passport`). Passports in
+        the form of a booklet are not displayed in the Diia app and cannot be shared via the API.
+      required:
+        - taxpayerNumber
+        - docNumber
+        - genderUA
+        - nationalityUA
+        - lastNameUA
+        - firstNameUA
+        - middleNameUA
+        - birthday
+        - birthPlaceUA
+        - issueDate
+        - expirationDate
+        - recordNumber
+        - department
+        - genderEN
+        - id
+        - lastNameEN
+        - firstNameEN
+        - registration
+        - fileName
+      properties:
+        taxpayerNumber:
+          type: string
+          description: РНОКПП (taxpayer number) of the user.
+          example: '3609606060'
+        residenceUA:
+          type: string
+          description: >-
+            Registration address of the document owner as a single line. The line structure is
+            not stable — it depends on how the address is stored in the state registry; may
+            contain the registration date.
+          example: "УКРАЇНА КИЇВСЬКА ОБЛАСТЬ М. ЯГОТИН ВУЛ. КИЇВСЬКА БУД. 110 КВ. 10.\nДата реєстрації: 28.03.2009"
+        docNumber:
+          type: string
+          description: Document number.
+          example: '003737373'
+        genderUA:
+          type: string
+          description: Gender (Ж — female, Ч — male).
+          enum: [Ж, Ч]
+          example: Ч
+        nationalityUA:
+          type: string
+          description: Nationality.
+          example: Україна
+        lastNameUA:
+          type: string
+          description: Last name (Ukrainian).
+          example: Бондаренко
+        firstNameUA:
+          type: string
+          description: First name (Ukrainian).
+          example: Богдан
+        middleNameUA:
+          type: string
+          description: Middle name (Ukrainian).
+          example: Петрович
+        birthday:
+          type: string
+          description: Date of birth, DD.MM.YYYY.
+          example: '10.10.1998'
+        birthPlaceUA:
+          type: string
+          description: Place of birth.
+          example: М. ЯГОТИН ЯГОТИНСЬКИЙ РАЙОН КИЇВСЬКА ОБЛАСТЬ  УКРАЇНА
+        issueDate:
+          type: string
+          description: Date of issue, DD.MM.YYYY.
+          example: '10.10.2023'
+        expirationDate:
+          type: string
+          description: Valid until, DD.MM.YYYY.
+          example: '10.10.2033'
+        recordNumber:
+          type: string
+          description: УНЗР (unique record number in the registry); the same for all passports of the owner.
+          example: 19981010-06278
+        department:
+          type: string
+          description: Code of the territorial subdivision that issued the document.
+          example: '3222'
+        genderEN:
+          type: string
+          description: Gender in Latin (M — male, F — female).
+          enum: [M, F]
+          example: M
+        id:
+          type: string
+          description: Unique identifier — УНЗР + date of issue.
+          example: 19981010-06278-2023-10-10
+        lastNameEN:
+          type: string
+          description: Last name in Latin.
+          example: Bondarenko
+        firstNameEN:
+          type: string
+          description: First name in Latin.
+          example: Bogdan
+        registration:
+          $ref: '#/components/schemas/RegistrationAddress'
+        fileName:
+          type: string
+          description: Name of the signed and encrypted PDF file delivered to the partner endpoint.
+          example: internal-passport-3951a259-fe85-4b88-9f07-0c8878332150-25.03.2026, 11:14:50-1.pdf.p7s
+      example:
+        taxpayerNumber: '3609606060'
+        residenceUA: "УКРАЇНА КИЇВСЬКА ОБЛАСТЬ М. ЯГОТИН ВУЛ. КИЇВСЬКА БУД. 110 КВ. 10.\nДата реєстрації: 28.03.2009"
+        docNumber: '003737373'
+        genderUA: Ч
+        nationalityUA: Україна
+        lastNameUA: Бондаренко
+        firstNameUA: Богдан
+        middleNameUA: Петрович
+        birthday: '10.10.1998'
+        birthPlaceUA: М. ЯГОТИН ЯГОТИНСЬКИЙ РАЙОН КИЇВСЬКА ОБЛАСТЬ  УКРАЇНА
+        issueDate: '10.10.2023'
+        expirationDate: '10.10.2033'
+        recordNumber: 19981010-06278
+        department: '3222'
+        genderEN: M
+        id: 19981010-06278-2023-10-10
+        lastNameEN: Bondarenko
+        firstNameEN: Bogdan
+        registration:
+          cbc_country: УКРАЇНА
+          country_id: '804'
+          postbox: ''
+          address_koatuu: '3225510100'
+          address_katotth: ''
+          region: КИЇВСЬКА ОБЛАСТЬ
+          region_district: ''
+          city_district: ''
+          settlement_name: ЯГОТИН
+          settlement_type: М.
+          street_name: КИЇВСЬКА
+          street_type: ''
+          building_number: '110'
+          building_part: ''
+          apartment: '10'
+          registration_date: '28.03.2009'
+          cancelregistration_date: null
+          address_grom_katottg: ''
+          settlement_district_katottg: ''
+        fileName: internal-passport-3951a259-fe85-4b88-9f07-0c8878332150-25.03.2026, 11:14:50-1.pdf.p7s
+
+    ForeignPassport:
+      type: object
+      description: Закордонний паспорт (scope `foreign-passport`).
+      required:
+        - taxpayerNumber
+        - docNumber
+        - genderUA
+        - nationalityUA
+        - lastNameUA
+        - firstNameUA
+        - middleNameUA
+        - birthday
+        - birthPlaceUA
+        - issueDate
+        - expirationDate
+        - recordNumber
+        - departmentUA
+        - countryCode
+        - genderEN
+        - id
+        - lastNameEN
+        - firstNameEN
+        - departmentEN
+        - fileName
+      properties:
+        taxpayerNumber:
+          type: string
+          description: РНОКПП (taxpayer number) of the user.
+          example: '3609606092'
+        residenceUA:
+          type: string
+          description: >-
+            Registration address of the document owner as a single line. The line structure is
+            not stable — it depends on how the address is stored in the state registry; may
+            contain the registration date.
+          example: "УКРАЇНА КИЇВСЬКА ОБЛАСТЬ ОБУХІВСЬКИЙ РАЙОН М. ОБУХІВ ВУЛ. КИЇВСЬКА БУД. 10 КВ. 10.\nДата реєстрації: 10.08.1999"
+        docNumber:
+          type: string
+          description: Document number.
+          example: FT567689
+        genderUA:
+          type: string
+          description: Gender (Ж — female, Ч — male).
+          enum: [Ж, Ч]
+          example: Ч
+        nationalityUA:
+          type: string
+          description: Nationality.
+          example: Україна
+        lastNameUA:
+          type: string
+          description: Last name (Ukrainian).
+          example: Дія
+        firstNameUA:
+          type: string
+          description: First name (Ukrainian).
+          example: Надія
+        middleNameUA:
+          type: string
+          description: Middle name (Ukrainian).
+          example: Володимирівна
+        birthday:
+          type: string
+          description: Date of birth, DD.MM.YYYY.
+          example: '10.10.1998'
+        birthPlaceUA:
+          type: string
+          description: Place of birth.
+          example: КИЇВСЬКА ОБЛ.
+        issueDate:
+          type: string
+          description: Date of issue, DD.MM.YYYY.
+          example: '28.11.2018'
+        expirationDate:
+          type: string
+          description: Valid until, DD.MM.YYYY.
+          example: '28.11.2028'
+        recordNumber:
+          type: string
+          description: УНЗР (unique record number in the registry); the same for all passports of the owner.
+          example: 19981010-06278
+        departmentUA:
+          type: string
+          description: Code of the territorial subdivision (Ukrainian).
+          example: '3238'
+        countryCode:
+          type: string
+          description: Document country code.
+          example: UKR
+        genderEN:
+          type: string
+          description: Gender in Latin (M — male, F — female).
+          enum: [M, F]
+          example: M
+        id:
+          type: string
+          description: Unique identifier — УНЗР + date of issue.
+          example: 19981010-06278-2018-11-28
+        lastNameEN:
+          type: string
+          description: Last name in Latin.
+          example: Diia
+        firstNameEN:
+          type: string
+          description: First name in Latin.
+          example: Nadiia
+        departmentEN:
+          type: string
+          description: Code of the territorial subdivision (English).
+          example: '3238'
+        registration:
+          $ref: '#/components/schemas/RegistrationAddress'
+        fileName:
+          type: string
+          description: Name of the signed and encrypted PDF file delivered to the partner endpoint.
+          example: foreign-passport-4e6e4d9d-8aaf-4d74-94ff-94411691c77a-27.03.2026, 11:07:51-1.pdf.p7s.p7e
+      example:
+        taxpayerNumber: '3609606092'
+        residenceUA: "УКРАЇНА КИЇВСЬКА ОБЛАСТЬ ОБУХІВСЬКИЙ РАЙОН М. ОБУХІВ ВУЛ. КИЇВСЬКА БУД. 10 КВ. 10.\nДата реєстрації: 10.08.1999"
+        docNumber: FT567689
+        genderUA: Ч
+        nationalityUA: Україна
+        lastNameUA: Дія
+        firstNameUA: Надія
+        middleNameUA: Володимирівна
+        birthday: '10.10.1998'
+        birthPlaceUA: КИЇВСЬКА ОБЛ.
+        issueDate: '28.11.2018'
+        expirationDate: '28.11.2028'
+        recordNumber: 19981010-06278
+        departmentUA: '3238'
+        countryCode: UKR
+        genderEN: M
+        id: 19981010-06278-2018-11-28
+        lastNameEN: Diia
+        firstNameEN: Nadiia
+        departmentEN: '3238'
+        registration:
+          cbc_country: УКРАЇНА
+          country_id: 804
+          postbox: ''
+          address_koatuu: ''
+          address_katotth: UA32120110010010000
+          region: КИЇВСЬКА ОБЛАСТЬ
+          region_district: ОБУХІВСЬКИЙ РАЙОН
+          city_district: ''
+          settlement_name: ОБУХІВ
+          settlement_type: М.
+          street_name: КИЇВСЬКА
+          street_type: ВУЛ.
+          building_number: '10'
+          building_part: ''
+          apartment: '10'
+          registration_date: '10.08.1999'
+          cancelregistration_date: null
+          address_grom_katottg: UA32120110000025177
+          settlement_district_katottg: ''
+        fileName: foreign-passport-4e6e4d9d-8aaf-4d74-94ff-94411691c77a-27.03.2026, 11:07:51-1.pdf.p7s.p7e

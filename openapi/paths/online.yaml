@@ -1,0 +1,109 @@
+# Path items: online request via deeplink (sharing, Diia.Sign) and its status.
+# Sources: diia_docs/diia_sharing.md §2.7, §2.12.2; diia_docs/diia_sign.md §3.5–3.6, §4.3
+OfferRequestDynamic:
+  parameters:
+    - $ref: '../components/parameters.yaml#/components/parameters/BranchId'
+  post:
+    tags: [Sharing, DiiaSign]
+    summary: Create a dynamic offer request and get a deeplink (online sharing / Diia.Sign)
+    description: |-
+      Creates a dynamic offer request and returns a deeplink to be opened in the Diia mobile
+      app (for websites/terminals it is displayed as a QR code). The deeplink is one-time and
+      valid for 3 minutes.
+
+      The same operation covers three scenarios — the branch/offer scopes determine which one
+      is executed:
+
+      * **Online sharing (AppToApp / deeplink):** the user confirms the sharing request; the
+        encrypted package is delivered to the partner endpoint, which must reply
+        `200 {"success": true}` (see `diia-partner-receiver.yaml`).
+      * **Diia.Sign — signing a file hash** (`diiaId: [hashedFilesSigning]`): the user signs
+        the provided file hashes; the signed items are delivered to the partner endpoint (see
+        `receiveSignature`).
+      * **Diia.Sign — authorization** (`diiaId: [auth]`): the user's signed identifier is
+        delivered to the partner endpoint (see `receiveAuth`); the partner decides whether to
+        authorize the user.
+
+      If `returnLink` was provided at offer creation or in this request, the user is redirected
+      to it after the scenario completes successfully.
+
+      For the Diia.Sign authorization scenario `requestId` must be the base64-encoded
+      DSTU 7564:2014 hash of the uuid v4 requestId (see diia_sign.md §4.2.3.4).
+    operationId: createOfferRequestDynamic
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/requests.yaml#/components/schemas/OfferRequestDynamicCreate'
+          examples:
+            onlineSharing:
+              summary: Online sharing of two documents
+              value:
+                offerId: 5e8decccb92d8d73ad838c5d
+                returnLink: https://site.com
+                requestId: a1234567-0123-1234-1234-123412341234
+                useDiiaId: true
+            hashedFilesSigning:
+              summary: Diia.Sign — signing two file hashes
+              value:
+                offerId: 5e8decccb92d8d73ad838c5d
+                returnLink: https://site.com
+                requestId: a1234567-0123-1234-1234-123412341234
+                signAlgo: DSTU
+                data:
+                  hashedFilesSigning:
+                    hashedFiles:
+                      - fileName: filename_1.pdf
+                        fileHash: 4X55SRSjNsx94BS6o9OyKyeLvYnCYwXEW46vz0wAqHA=
+                      - fileName: filename_2.pdf
+                        fileHash: MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI=
+            authorization:
+              summary: Diia.Sign — user authorization
+              value:
+                offerId: 5e8decccb92d8d73ad838c5d
+                returnLink: https://site.com
+                requestId: a1234567-0123-1234-1234-123412341234
+    responses:
+      '200':
+        description: Deeplink created.
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/components/schemas/DeeplinkResponse'
+      '400':
+        $ref: '../components/responses.yaml#/components/responses/OfferRequestBadRequest'
+      '401':
+        $ref: '../components/responses.yaml#/components/responses/NotAuthorized'
+      '403':
+        $ref: '../components/responses.yaml#/components/responses/SignScopeConflict'
+      '404':
+        $ref: '../components/responses.yaml#/components/responses/OfferRequestNotFound'
+      '422':
+        $ref: '../components/responses.yaml#/components/responses/OfferRequestValidationError'
+
+OfferRequestStatus:
+  get:
+    tags: [Status, DiiaSign]
+    summary: Get the status by otp (online sharing / Diia.Sign)
+    description: >-
+      Returns the status of an online request (sharing, file-hash signing or authorization).
+      Provide `otp` and/or `requestId` — you may also pass only one of them. `otp` is the
+      last segment of the deeplink returned by `createOfferRequestDynamic`.
+    operationId: getOfferRequestStatus
+    parameters:
+      - $ref: '../components/parameters.yaml#/components/parameters/OtpQuery'
+      - $ref: '../components/parameters.yaml#/components/parameters/RequestIdQuery'
+    responses:
+      '200':
+        description: Current status of the request.
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/components/schemas/RequestStatusResponse'
+            example:
+              status: initialized
+      '401':
+        $ref: '../components/responses.yaml#/components/responses/NotAuthorized'
+      '404':
+        $ref: '../components/responses.yaml#/components/responses/DocumentRequestStatusNotFound'
