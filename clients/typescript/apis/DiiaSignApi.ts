@@ -1,0 +1,232 @@
+// TODO: better import syntax?
+import {BaseAPIRequestFactory, RequiredError, COLLECTION_FORMATS} from './baseapi';
+import {Configuration} from '../configuration';
+import {RequestContext, HttpMethod, ResponseContext, HttpFile, HttpInfo} from '../http/http';
+import {ObjectSerializer} from '../models/ObjectSerializer';
+import {ApiException} from './exception';
+import {canConsumeForm, isCodeInRange} from '../util';
+import {SecurityAuthentication} from '../auth/auth';
+
+
+import { ApiError } from '../models/ApiError';
+import { DeeplinkResponse } from '../models/DeeplinkResponse';
+import { OfferRequestDynamicCreate } from '../models/OfferRequestDynamicCreate';
+import { RequestStatusResponse } from '../models/RequestStatusResponse';
+
+/**
+ * no description
+ */
+export class DiiaSignApiRequestFactory extends BaseAPIRequestFactory {
+
+    /**
+     * Creates a dynamic offer request and returns a deeplink to be opened in the Diia mobile app (for websites/terminals it is displayed as a QR code). The deeplink is one-time and valid for 3 minutes.  The same operation covers three scenarios — the branch/offer scopes determine which one is executed:  * **Online sharing (AppToApp / deeplink):** the user confirms the sharing request; the   encrypted package is delivered to the partner endpoint, which must reply   `200 {\"success\": true}` (see `diia-partner-receiver.yaml`). * **Diia.Sign — signing a file hash** (`diiaId: [hashedFilesSigning]`): the user signs   the provided file hashes; the signed items are delivered to the partner endpoint (see   `receiveSignature`). * **Diia.Sign — authorization** (`diiaId: [auth]`): the user\'s signed identifier is   delivered to the partner endpoint (see `receiveAuth`); the partner decides whether to   authorize the user.  If `returnLink` was provided at offer creation or in this request, the user is redirected to it after the scenario completes successfully.  For the Diia.Sign authorization scenario `requestId` must be the base64-encoded DSTU 7564:2014 hash of the uuid v4 requestId (see diia_sign.md §4.2.3.4).
+     * Create a dynamic offer request and get a deeplink (online sharing / Diia.Sign)
+     * @param branchId Branch identifier (branch_id).
+     * @param offerRequestDynamicCreate 
+     */
+    public async createOfferRequestDynamic(branchId: string, offerRequestDynamicCreate: OfferRequestDynamicCreate, _options?: Configuration): Promise<RequestContext> {
+        let _config = _options || this.configuration;
+
+        // verify required parameter 'branchId' is not null or undefined
+        if (branchId === null || branchId === undefined) {
+            throw new RequiredError("DiiaSignApi", "createOfferRequestDynamic", "branchId");
+        }
+
+
+        // verify required parameter 'offerRequestDynamicCreate' is not null or undefined
+        if (offerRequestDynamicCreate === null || offerRequestDynamicCreate === undefined) {
+            throw new RequiredError("DiiaSignApi", "createOfferRequestDynamic", "offerRequestDynamicCreate");
+        }
+
+
+        // Path Params
+        const localVarPath = '/api/v2/acquirers/branch/{branchId}/offer-request/dynamic'
+            .replace('{branchId}', encodeURIComponent(String(branchId)));
+
+        // Make Request Context
+        const requestContext = _config.baseServer.makeRequestContext(localVarPath, HttpMethod.POST);
+        requestContext.setHeaderParam("Accept", "application/json, */*;q=0.8")
+
+
+        // Body Params
+        const contentType = ObjectSerializer.getPreferredMediaType([
+            "application/json"
+        ]);
+        requestContext.setHeaderParam("Content-Type", contentType);
+        const serializedBody = ObjectSerializer.stringify(
+            ObjectSerializer.serialize(offerRequestDynamicCreate, "OfferRequestDynamicCreate", ""),
+            contentType
+        );
+        requestContext.setBody(serializedBody);
+
+        let authMethod: SecurityAuthentication | undefined;
+        // Apply auth methods
+        authMethod = _config.authMethods["bearerAuth"]
+        if (authMethod?.applySecurityAuthentication) {
+            await authMethod?.applySecurityAuthentication(requestContext);
+        }
+        
+        const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
+        if (defaultAuth?.applySecurityAuthentication) {
+            await defaultAuth?.applySecurityAuthentication(requestContext);
+        }
+
+        return requestContext;
+    }
+
+    /**
+     * Returns the status of an online request (sharing, file-hash signing or authorization). Provide `otp` and/or `requestId` — you may also pass only one of them. `otp` is the last segment of the deeplink returned by `createOfferRequestDynamic`.
+     * Get the status by otp (online sharing / Diia.Sign)
+     * @param otp OTP — the last segment of the deeplink returned by &#x60;createOfferRequestDynamic&#x60;. For deeplink &#x60;https://diia.app/acquirers/offer-request/dynamic/38abd418-f786-4a4d-a4d6-24fc842dacfc&#x60; the otp is &#x60;38abd418-f786-4a4d-a4d6-24fc842dacfc&#x60;. Provide &#x60;otp&#x60; and/or &#x60;requestId&#x60; — at least one of the two parameters is required.
+     * @param requestId Partner request identifier. Provide &#x60;requestId&#x60; and/or the barcode/otp — at least one of the two parameters is required.
+     */
+    public async getOfferRequestStatus(otp?: string, requestId?: string, _options?: Configuration): Promise<RequestContext> {
+        let _config = _options || this.configuration;
+
+
+
+        // Path Params
+        const localVarPath = '/api/v1/acquirers/offer-request/status';
+
+        // Make Request Context
+        const requestContext = _config.baseServer.makeRequestContext(localVarPath, HttpMethod.GET);
+        requestContext.setHeaderParam("Accept", "application/json, */*;q=0.8")
+
+        // Query Params
+        if (otp !== undefined) {
+            requestContext.setQueryParam("otp", ObjectSerializer.serialize(otp, "string", "uuid"));
+        }
+
+        // Query Params
+        if (requestId !== undefined) {
+            requestContext.setQueryParam("requestId", ObjectSerializer.serialize(requestId, "string", ""));
+        }
+
+
+        let authMethod: SecurityAuthentication | undefined;
+        // Apply auth methods
+        authMethod = _config.authMethods["bearerAuth"]
+        if (authMethod?.applySecurityAuthentication) {
+            await authMethod?.applySecurityAuthentication(requestContext);
+        }
+        
+        const defaultAuth: SecurityAuthentication | undefined = _config?.authMethods?.default
+        if (defaultAuth?.applySecurityAuthentication) {
+            await defaultAuth?.applySecurityAuthentication(requestContext);
+        }
+
+        return requestContext;
+    }
+
+}
+
+export class DiiaSignApiResponseProcessor {
+
+    /**
+     * Unwraps the actual response sent by the server from the response context and deserializes the response content
+     * to the expected objects
+     *
+     * @params response Response returned by the server for a request to createOfferRequestDynamic
+     * @throws ApiException if the response code was not in [200, 299]
+     */
+     public async createOfferRequestDynamicWithHttpInfo(response: ResponseContext): Promise<HttpInfo<DeeplinkResponse >> {
+        const contentType = ObjectSerializer.normalizeMediaType(response.headers["content-type"]);
+        if (isCodeInRange("200", response.httpStatusCode)) {
+            const body: DeeplinkResponse = ObjectSerializer.deserialize(
+                ObjectSerializer.parse(await response.body.text(), contentType),
+                "DeeplinkResponse", ""
+            ) as DeeplinkResponse;
+            return new HttpInfo(response.httpStatusCode, response.headers, response.body, body);
+        }
+        if (isCodeInRange("400", response.httpStatusCode)) {
+            const body: ApiError = ObjectSerializer.deserialize(
+                ObjectSerializer.parse(await response.body.text(), contentType),
+                "ApiError", ""
+            ) as ApiError;
+            throw new ApiException<ApiError>(response.httpStatusCode, "The request was rejected: the &#x60;requestId&#x60; has already been used (&#x60;requestId&#x60; must be unique), or the public encryption certificate installed on the acquirer account has expired and must be replaced.", body, response.headers);
+        }
+        if (isCodeInRange("401", response.httpStatusCode)) {
+            const body: ApiError = ObjectSerializer.deserialize(
+                ObjectSerializer.parse(await response.body.text(), contentType),
+                "ApiError", ""
+            ) as ApiError;
+            throw new ApiException<ApiError>(response.httpStatusCode, "Session token is missing, invalid or expired (session tokens live 2 hours from the moment they are issued). Alternatively the &#x60;Authorization: Bearer {session_token}&#x60; header was not provided correctly.", body, response.headers);
+        }
+        if (isCodeInRange("403", response.httpStatusCode)) {
+            const body: ApiError = ObjectSerializer.deserialize(
+                ObjectSerializer.parse(await response.body.text(), contentType),
+                "ApiError", ""
+            ) as ApiError;
+            throw new ApiException<ApiError>(response.httpStatusCode, "Both Diia.Sign scenarios («hashedFilesSigning» and «auth») are integrated on the same branch — this is incompatible. Create at least one separate branch per Diia.Sign scenario.", body, response.headers);
+        }
+        if (isCodeInRange("404", response.httpStatusCode)) {
+            const body: ApiError = ObjectSerializer.deserialize(
+                ObjectSerializer.parse(await response.body.text(), contentType),
+                "ApiError", ""
+            ) as ApiError;
+            throw new ApiException<ApiError>(response.httpStatusCode, "One of the following: the branch id in the path does not exist; the offer id in the body does not exist; the offer does not belong to the branch from the path; the &#x60;returnLink&#x60; field was sent as an empty string.", body, response.headers);
+        }
+        if (isCodeInRange("422", response.httpStatusCode)) {
+            const body: ApiError = ObjectSerializer.deserialize(
+                ObjectSerializer.parse(await response.body.text(), contentType),
+                "ApiError", ""
+            ) as ApiError;
+            throw new ApiException<ApiError>(response.httpStatusCode, "Parameter validation error — &#x60;requestId&#x60; is missing or its length is out of the 10–255 range.", body, response.headers);
+        }
+
+        // Work around for missing responses in specification, e.g. for petstore.yaml
+        if (response.httpStatusCode >= 200 && response.httpStatusCode <= 299) {
+            const body: DeeplinkResponse = ObjectSerializer.deserialize(
+                ObjectSerializer.parse(await response.body.text(), contentType),
+                "DeeplinkResponse", ""
+            ) as DeeplinkResponse;
+            return new HttpInfo(response.httpStatusCode, response.headers, response.body, body);
+        }
+
+        throw new ApiException<string | Blob | undefined>(response.httpStatusCode, "Unknown API Status Code!", await response.getBodyAsAny(), response.headers);
+    }
+
+    /**
+     * Unwraps the actual response sent by the server from the response context and deserializes the response content
+     * to the expected objects
+     *
+     * @params response Response returned by the server for a request to getOfferRequestStatus
+     * @throws ApiException if the response code was not in [200, 299]
+     */
+     public async getOfferRequestStatusWithHttpInfo(response: ResponseContext): Promise<HttpInfo<RequestStatusResponse >> {
+        const contentType = ObjectSerializer.normalizeMediaType(response.headers["content-type"]);
+        if (isCodeInRange("200", response.httpStatusCode)) {
+            const body: RequestStatusResponse = ObjectSerializer.deserialize(
+                ObjectSerializer.parse(await response.body.text(), contentType),
+                "RequestStatusResponse", ""
+            ) as RequestStatusResponse;
+            return new HttpInfo(response.httpStatusCode, response.headers, response.body, body);
+        }
+        if (isCodeInRange("401", response.httpStatusCode)) {
+            const body: ApiError = ObjectSerializer.deserialize(
+                ObjectSerializer.parse(await response.body.text(), contentType),
+                "ApiError", ""
+            ) as ApiError;
+            throw new ApiException<ApiError>(response.httpStatusCode, "Session token is missing, invalid or expired (session tokens live 2 hours from the moment they are issued). Alternatively the &#x60;Authorization: Bearer {session_token}&#x60; header was not provided correctly.", body, response.headers);
+        }
+        if (isCodeInRange("404", response.httpStatusCode)) {
+            const body: ApiError = ObjectSerializer.deserialize(
+                ObjectSerializer.parse(await response.body.text(), contentType),
+                "ApiError", ""
+            ) as ApiError;
+            throw new ApiException<ApiError>(response.httpStatusCode, "Either the status was requested for a barcode/otp that never had a request created, or the &#x60;requestId&#x60; was reused (&#x60;requestId&#x60; is unique).", body, response.headers);
+        }
+
+        // Work around for missing responses in specification, e.g. for petstore.yaml
+        if (response.httpStatusCode >= 200 && response.httpStatusCode <= 299) {
+            const body: RequestStatusResponse = ObjectSerializer.deserialize(
+                ObjectSerializer.parse(await response.body.text(), contentType),
+                "RequestStatusResponse", ""
+            ) as RequestStatusResponse;
+            return new HttpInfo(response.httpStatusCode, response.headers, response.body, body);
+        }
+
+        throw new ApiException<string | Blob | undefined>(response.httpStatusCode, "Unknown API Status Code!", await response.getBodyAsAny(), response.headers);
+    }
+
+}

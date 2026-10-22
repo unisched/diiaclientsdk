@@ -1,0 +1,83 @@
+name: Publish TypeScript client
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'package.json'
+      - 'openapi/**'
+      - 'clients/typescript/**'
+      - 'scripts/generate.mjs'
+      - '.github/workflows/publish-typescript.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: publish-typescript-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish @unisched/diiaclientsdk
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://npm.pkg.github.com
+          scope: '@unisched'
+          cache: npm
+
+      - name: Set up Java for OpenAPI Generator
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Install tooling
+        run: npm ci
+
+      - name: Verify generated clients are up to date
+        run: npm run generate:check
+
+      - name: Read and verify package version
+        id: version
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          CLIENT_VERSION="$(node -p "require('./clients/typescript/package.json').version")"
+          if [ "$VERSION" != "$CLIENT_VERSION" ]; then
+            echo "::error::clients/typescript version ($CLIENT_VERSION) does not match package.json ($VERSION). Run 'npm run generate' and commit the result."
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Check whether this version is already published
+        id: published
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PACKAGE="@unisched/diiaclientsdk@${{ steps.version.outputs.version }}"
+          if npm view "$PACKAGE" version --registry=https://npm.pkg.github.com >/dev/null 2>&1; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "$PACKAGE is already published — nothing to do."
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+            echo "$PACKAGE is not published yet."
+          fi
+
+      - name: Publish to GitHub Packages
+        if: steps.published.outputs.publish == 'true'
+        working-directory: clients/typescript
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          npm install --include=dev --no-audit --no-fund --ignore-scripts
+          npm publish --access public

@@ -1,0 +1,97 @@
+name: Publish C# client
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'package.json'
+      - 'openapi/**'
+      - 'clients/csharp/**'
+      - 'scripts/generate.mjs'
+      - '.github/workflows/publish-csharp.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: publish-csharp-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish Diia.Client
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Set up Java for OpenAPI Generator
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install tooling
+        run: npm ci
+
+      - name: Verify generated clients are up to date
+        run: npm run generate:check
+
+      - name: Read and verify package version
+        id: version
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          CLIENT_VERSION="$(grep -oP '(?<=<Version>)[^<]+' clients/csharp/src/Diia.Client/Diia.Client.csproj | head -n1)"
+          if [ "$VERSION" != "$CLIENT_VERSION" ]; then
+            echo "::error::clients/csharp version ($CLIENT_VERSION) does not match package.json ($VERSION). Run 'npm run generate' and commit the result."
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Check whether this version is already published
+        id: published
+        env:
+          NUGET_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          URL="https://nuget.pkg.github.com/unisched/download/diia.client/${VERSION}/diia.client.${VERSION}.nupkg"
+          STATUS="$(curl -s -o /dev/null -w '%{http_code}' -u "${GITHUB_ACTOR}:${NUGET_AUTH_TOKEN}" "$URL")"
+          if [ "$STATUS" = "200" ]; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "Diia.Client ${VERSION} is already published — nothing to do."
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+            echo "Diia.Client ${VERSION} is not published yet (status ${STATUS})."
+          fi
+
+      - name: Pack and publish to GitHub Packages
+        if: steps.published.outputs.publish == 'true'
+        env:
+          NUGET_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          dotnet nuget add source "https://nuget.pkg.github.com/unisched/index.json" \
+            --name github \
+            --username "${GITHUB_ACTOR}" \
+            --password "${NUGET_AUTH_TOKEN}" \
+            --store-password-in-clear-text
+          dotnet pack clients/csharp/src/Diia.Client/Diia.Client.csproj \
+            --configuration Release \
+            --output dist/nuget
+          dotnet nuget push "dist/nuget/*.nupkg" \
+            --source github \
+            --api-key "${NUGET_AUTH_TOKEN}" \
+            --skip-duplicate

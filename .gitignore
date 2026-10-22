@@ -3,3 +3,4 @@ dist/
 .commandcode/
 erl_crash.dump
 clients/elixir/mix.lock
+clients/typescript/package-lock.json

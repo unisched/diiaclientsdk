@@ -85,6 +85,15 @@ const targets = [
     ],
   },
   {
+    name: 'typescript',
+    description: 'TypeScript (fetch)',
+    properties: [
+      'npmName=@unisched/diiaclientsdk',
+      `npmVersion=${clientVersion}`,
+      'supportsES6=true',
+    ],
+  },
+  {
     name: 'csharp',
     description: 'C# (RestSharp)',
     properties: [
@@ -145,7 +154,49 @@ function generateInto(targetDir) {
     ]);
   }
   finalizeElixirVersion(targetDir);
+  finalizeTypeScriptPackage(targetDir);
+  finalizeCSharpProject(targetDir);
   finalizeCSharpSolution(targetDir);
+}
+
+/** Adds the GitHub Packages publish target to the generated TypeScript package. */
+function finalizeTypeScriptPackage(targetDir) {
+  const packageFile = path.join(targetDir, 'typescript', 'package.json');
+  const packageJson = JSON.parse(readFileSync(packageFile, 'utf8'));
+  packageJson.repository = {
+    type: 'git',
+    url: 'https://github.com/unisched/diiaclientsdk.git',
+  };
+  packageJson.publishConfig = {
+    registry: 'https://npm.pkg.github.com',
+    access: 'public',
+  };
+  // The generated basic-auth code uses Buffer, which needs Node typings to compile.
+  packageJson.devDependencies = {
+    ...packageJson.devDependencies,
+    '@types/node': '^24.0.0',
+  };
+  writeFileSync(packageFile, `${JSON.stringify(packageJson, null, 2)}\n`);
+}
+
+/** Aligns NuGet package metadata with the repository and product. */
+function finalizeCSharpProject(targetDir) {
+  const projectFile = path.join(targetDir, 'csharp', 'src', 'Diia.Client', 'Diia.Client.csproj');
+  let content = readFileSync(projectFile, 'utf8');
+  const replacements = [
+    [/<RepositoryUrl>[^<]*<\/RepositoryUrl>/, '<RepositoryUrl>https://github.com/unisched/diiaclientsdk</RepositoryUrl>'],
+    [/<Authors>[^<]*<\/Authors>/, '<Authors>unisched</Authors>'],
+    [/<Company>[^<]*<\/Company>/, '<Company>unisched</Company>'],
+    [/<Description>[^<]*<\/Description>/, '<Description>C# client for the Diia REST API (sharing and Diia.Sign).</Description>'],
+    [/\n\s*<PackageReleaseNotes>[^<]*<\/PackageReleaseNotes>/, ''],
+  ];
+  for (const [pattern, replacement] of replacements) {
+    if (!pattern.test(content)) {
+      throw new Error(`Could not update ${path.relative(root, projectFile)}: ${pattern} not found`);
+    }
+    content = content.replace(pattern, replacement);
+  }
+  writeFileSync(projectFile, content);
 }
 
 /**
@@ -193,10 +244,27 @@ function finalizeElixirVersion(targetDir) {
 }
 
 /** Directories that are local build/dependency artifacts, not generated sources. */
-const ignoredDirectories = new Set(['.git', '.elixir_ls', '_build', 'bin', 'deps', 'node_modules', 'obj', 'target']);
+const ignoredDirectories = new Set([
+  '.git',
+  '.elixir_ls',
+  '_build',
+  'bin',
+  'deps',
+  'dist',
+  'node_modules',
+  'obj',
+  'target',
+]);
 
 /** Files produced by local dependency resolution or the OS, not by the generator. */
-const ignoredFiles = new Set(['.DS_Store', 'Cargo.lock', 'erl_crash.dump', 'mix.lock', 'packages.lock.json']);
+const ignoredFiles = new Set([
+  '.DS_Store',
+  'Cargo.lock',
+  'erl_crash.dump',
+  'mix.lock',
+  'package-lock.json',
+  'packages.lock.json',
+]);
 
 function listFiles(dir, base = dir, acc = []) {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
